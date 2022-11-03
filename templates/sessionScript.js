@@ -1,43 +1,4 @@
-  <!DOCTYPE html>
-  <html lang="en">
-  <head>
-    <title>Flask_Chat_App</title>
-  </head>
-  <body>
-
-    <h3 style='color: #ccc;font-size: 30px;'>No message yet..</h3>
-    <div class="message_holder"></div>
-
-    <form name="chatForm" action="" method="POST">
-      <input type="text" class="username" placeholder="User Name"/>
-      <input type="text" class="message" placeholder="Messages"/>
-      <input type="submit"/>
-    </form>
-
-    <form name="diceForm" action="" method="POST">
-      <input type="number" class="num" placeholder="1-18"/>
-      <input type="submit"/>
-    </form>
-
-    <div class="container text-center">
-       <h1 >Slider Demo</h1>
-       <form class="mt-5">
-          <div class="form-group">
-             <label >Demo Slider 1</label>
-             <input type="range" class="form-control-range sync" id="slider1" min="0" max="50" value="{{slider1}}">
-          </div>
-          <div class="form-group">
-             <label>Demo Slider 2</label>
-             <input type="range" class="form-control-range sync" id="slider2" min="0" max="50" value="{{slider2}}">
-          </div>
-       </form>
-    </div>
-
-    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
-    <script type="text/javascript">
-    $(document).ready(function(){
+$(document).ready(function(){
       var socket = io.connect('http://' + document.domain + ':' + location.port);
 
             $('input.sync').on('input', function(event) {
@@ -86,7 +47,3 @@
         }
       })
       });
-    </script>
-
-  </body>
-  </html>
