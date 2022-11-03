@@ -32,10 +32,10 @@
           </div>
        </form>
     </div>
-
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
+
     <script type="text/javascript">
     $(document).ready(function(){
       var socket = io.connect('http://' + document.domain + ':' + location.port);
@@ -83,6 +83,9 @@
         if( typeof msg.user_name !== 'undefined' ) {
           $( 'h3' ).remove()
           $( 'div.message_holder' ).append( '<div><b style="color: #000">'+msg.user_name+'</b> '+msg.message+'</div>' )
+        }
+        if( typeof msg.number !== 'undefined' ) {
+            $( 'div.message_holder' ).append( '<div><b style="color: #000">'+msg.number+'</div>' )
         }
       })
       });
