@@ -27,6 +27,22 @@
                 if (cb)
                     cb();
             });
+            socket.on('emit_room', function(msg, cb) {
+                $('#room_log').append('<br>' + $('<div/>').text(msg.username +': ' + msg.data).html());
+                if (cb)
+                    cb();
+            });
+            socket.on('log_room', function(msg, cb) {
+                $('#room_log').append('<br>' + $('<div/>').text('# '+msg.data).html());
+                if (cb)
+                    cb();
+            });
+            socket.on('update_room_name', function(msg, cb) {
+                $('#room_box_name').text('Room: '+msg.room);
+                if (cb)
+                    cb();
+            });
+
 
             socket.on('status', function(msg,cb) {
                 $('#connected_users').text(msg.count);
@@ -88,7 +104,11 @@
                 return false;
             });
             $('form#send_room').submit(function(event) {
-                socket.emit('my_room_event', {room: $('#room_name').val(), data: $('#room_data').val()});
+                socket.emit('outside_room_event', {room: $('#room_name').val(), data: $('#room_data').val()});
+                return false;
+            });
+            $('form#room_box_send').submit(function(event) {
+                socket.emit('room_post', {data: $('#room_box_data').val()});
                 return false;
             });
             $('form#close').submit(function(event) {
@@ -161,7 +181,12 @@
             <div id="log" style="overflow:scroll; height:400px;"></div>
         </div>
         <div id="room_box" style="width:50%; display:inline-block; float: right; background: pink;">
+            <h3 id="room_box_name">Room: None</h3>
             <div id="room_log" style="overflow:scroll; height:400px;"></div>
+            <form id="room_box_send" method="POST" action='#'>
+                <input type="text" name="room_data" id="room_box_data" placeholder="Message">
+                <input type="submit" value="Send">
+            </form>
         </div>
     </div>
 
