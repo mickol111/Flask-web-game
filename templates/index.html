@@ -28,6 +28,12 @@
                     cb();
             });
 
+            socket.on('status', function(msg,cb) {
+                $('#connected_users').text(msg.count);
+                if (cb)
+                    cb();
+            });
+
             // Interval function that tests message latency by sending a "ping"
             // message. The server then responds with a "pong" message and the
             // round trip time is measured.
@@ -64,7 +70,7 @@
                 return false;
             });
             $('form#join').submit(function(event) {
-                socket.emit('join', {room: $('#join_room').val()});
+                socket.emit('join', {username: $('#user_name').val(), room: $('#join_room').val()});
                 return false;
             });
             $('form#leave').submit(function(event) {
@@ -91,7 +97,8 @@
     <p>
       Async mode is: <b>{{ async_mode }}</b><br>
       Current transport is: <b><span id="transport"></span></b><br>
-      Average ping/pong latency: <b><span id="ping-pong"></span>ms</b>
+      Average ping/pong latency: <b><span id="ping-pong"></span>ms</b><br>
+      Number of connected users: <b><span id="connected_users"></span></b>
     </p>
     <h2>Send:</h2>
     <form id="emit" method="POST" action='#'>
@@ -103,6 +110,7 @@
         <input type="submit" value="Broadcast">
     </form>
     <form id="join" method="POST" action='#'>
+        <input type="text" name="user_name" id="user_name" placeholder="User Name">
         <input type="text" name="join_room" id="join_room" placeholder="Room Name">
         <input type="submit" value="Join Room">
     </form>
