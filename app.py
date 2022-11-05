@@ -17,6 +17,7 @@ thread_lock = Lock()
 
 gCount = 0
 gRooms = []
+gUsers = []
 
 #constants
 ROOM_CAP = 2
@@ -52,6 +53,32 @@ def my_broadcast_event(message):
          broadcast=True)
 
 
+@socketio.event
+def rooms_refresh():
+    global gRooms
+    print(str(gRooms))
+    emit('rooms_status', {'rooms': str(gRooms)}, broadcast=True)
+
+
+@socketio.event
+def user_login(message):
+    global gUsers
+    username = message['username']
+    sid = request.sid
+    print('id: '+ sid + '/ username: '+username)
+    userIdx = next((i for i, x in enumerate(gUsers) if x[0] == sid), None)
+    session['receive_count'] = session.get('receive_count', 0) + 1
+    if userIdx == None:
+        gUsers.append([sid,username])
+        emit('my_response', {'data': 'Logged in as: '+username+'.',
+                             'count': session['receive_count']})
+    else:
+        gUsers[userIdx] = [sid, username]
+        print("Username changed to: "+ username)
+        emit('my_response', {'data': 'Username changed to: '+username+'.',
+                             'count': session['receive_count']})
+
+
 #@socketio.event
 #def join(message):
 #    join_room(message['room'])
@@ -60,50 +87,54 @@ def my_broadcast_event(message):
 #         {'data': 'In rooms: ' + ', '.join(rooms()),
 #          'count': session['receive_count']})
 
+
 @socketio.on('join')
 def on_join(data):
     global gRooms
-    username = data['username']
+    global gUsers
     room = data['room']
     sid = request.sid
-    roomIdx = next((i for i, x in enumerate(gRooms) if x["room"] == room), None)
-    if roomIdx !=None:
-        usersInRoom = len(gRooms[roomIdx].get("users"))
-        if  usersInRoom < ROOM_CAP:
+    username = next((x[1] for i, x in enumerate(gUsers) if x[0] == sid), None)
+    if username == None:
+        emit('my_response', {'data': "You have to log in." ,
+                             'count': session['receive_count']})
+    else:
+        roomIdx = next((i for i, x in enumerate(gRooms) if x["room"] == room), None)
+        if roomIdx !=None:
+            usersInRoom = len(gRooms[roomIdx].get("users"))
+            if  usersInRoom < ROOM_CAP:
+                join_room(room)
+                session['receive_count'] = session.get('receive_count', 0) + 1
+                print(username + ' has entered the room: ' + room)
+                emit('my_response', {'data': username + ' has entered the room.',
+                                     'count': session['receive_count']},
+                     to=room)
+                gRooms[roomIdx]["users"].append(username)
+                emit('rooms_status', {'rooms': str(gRooms)}, broadcast=True)
+            else:
+                session['receive_count'] = session.get('receive_count', 0) + 1
+                print(username + ' cannot enter the room: ' + room + '. Users in the room: ' +str(usersInRoom)+'/'+str(ROOM_CAP))
+                emit('my_response', {'data': username + ' cannot enter the room: ' + room + '. Users in the room: ' +str(usersInRoom)+'/'+str(ROOM_CAP),
+                                     'count': session['receive_count']})
+        else:
             join_room(room)
             session['receive_count'] = session.get('receive_count', 0) + 1
+            print(room + ' has been created.')
             print(username + ' has entered the room: ' + room)
-            emit('my_response', {'data': username + ' has entered the room.',
+            emit('my_response', {'data': room + ' has been created. '+username + ' has entered the room: ' + room,
+                                 'count': session['receive_count']})
+            emit('my_response', {'data': room + ' has been created. '+username + ' has entered the room: ' + room,
                                  'count': session['receive_count']},
                  to=room)
-            print(gRooms)
-            gRooms[roomIdx]["users"].append(username)
-            print(gRooms)
-        else:
-            session['receive_count'] = session.get('receive_count', 0) + 1
-            print(username + ' cannot enter the room: ' + room + '. Users in the room: ' +str(usersInRoom)+'/'+str(ROOM_CAP))
-            emit('my_response', {'data': username + ' cannot enter the room: ' + room + '. Users in the room: ' +str(usersInRoom)+'/'+str(ROOM_CAP),
-                                 'count': session['receive_count']})
-    else:
+            gRooms.append({"room": room, "users": [username]})
+            emit('rooms_status', {'rooms': str(gRooms)}, broadcast=True)
+
         join_room(room)
         session['receive_count'] = session.get('receive_count', 0) + 1
-        print(room + ' has been created.')
         print(username + ' has entered the room: ' + room)
-        emit('my_response', {'data': room + ' has been created. '+username + ' has entered the room: ' + room,
-                             'count': session['receive_count']})
-        emit('my_response', {'data': room + ' has been created. '+username + ' has entered the room: ' + room,
+        emit('my_response', {'data': username + ' has entered the room.',
                              'count': session['receive_count']},
              to=room)
-        print(gRooms)
-        gRooms.append({"room": room, "users": [username]})
-        print(gRooms)
-
-    join_room(room)
-    session['receive_count'] = session.get('receive_count', 0) + 1
-    print(username + ' has entered the room: ' + room)
-    emit('my_response', {'data': username + ' has entered the room.',
-                         'count': session['receive_count']},
-         to=room)
 
 
 @socketio.event
@@ -167,11 +198,16 @@ def connect():
 @socketio.on('disconnect')
 def test_disconnect():
     global gCount
+    global gUsers
+    sid = request.sid
+    userIdx = next((i for i, x in enumerate(gUsers) if x[0] == sid), None)
+    if userIdx!=None:
+        del gUsers[userIdx]
+        print('User removed. Users list: '+str(gUsers))
     print('Client disconnected', request.sid)
     gCount -= 1
     print("gCount: " + str(gCount))
     emit('status', {'count': gCount},broadcast=True)
-
 
 
 if __name__ == '__main__':
