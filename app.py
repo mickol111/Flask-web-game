@@ -2,7 +2,7 @@ from threading import Lock
 from flask import Flask, render_template, session, request, \
     copy_current_request_context
 from flask_socketio import SocketIO, emit, join_room, leave_room, \
-    close_room, rooms, disconnect,send
+    close_room, call, disconnect,send
 
 # Set this variable to "threading", "eventlet" or "gevent" to test the
 # different async modes, or leave it set to None for the application to choose
@@ -18,6 +18,7 @@ thread_lock = Lock()
 gCount = 0
 gRooms = []
 gUsers = []
+gPasswords = []
 
 #constants
 ROOM_CAP = 2
@@ -74,33 +75,33 @@ def user_login(message):
     username = message['username']
     sid = request.sid
     print('id: '+ sid + '/ username: '+username)
-    userIdx = next((i for i, x in enumerate(gUsers) if x[0] == sid), None)
     session['receive_count'] = session.get('receive_count', 0) + 1
+    sidIdx = next((i for i, x in enumerate(gUsers) if x[0] == sid), None)
+    userIdx = next((i for i, x in enumerate(gUsers) if x[1] == username), None)
     if userIdx == None:
-        gUsers.append([sid,username])
-        emit('my_response', {'data': 'Logged in as: '+username+'.',
-                             'count': session['receive_count']})
+        if sidIdx == None:
+            gUsers.append([sid,username])
+            emit('my_response', {'data': 'Logged in as: '+username+'.',
+                                 'count': session['receive_count']})
+        else:
+            gUsers[sidIdx] = [sid, username]
+            print("Username changed to: "+ username)
+            emit('my_response', {'data': 'Username changed to: '+username+'.',
+                                 'count': session['receive_count']})
     else:
-        gUsers[userIdx] = [sid, username]
-        print("Username changed to: "+ username)
-        emit('my_response', {'data': 'Username changed to: '+username+'.',
+        print("Username is taken: " + username)
+        emit('my_response', {'data': 'Username: '+username+' is already taken.',
                              'count': session['receive_count']})
 
-
-#@socketio.event
-#def join(message):
-#    join_room(message['room'])
-#    session['receive_count'] = session.get('receive_count', 0) + 1
-#    emit('my_response',
-#         {'data': 'In rooms: ' + ', '.join(rooms()),
-#          'count': session['receive_count']})
-
-
-@socketio.on('join')
-def on_join(data):
+@socketio.on('create')
+def create(data):
     global gRooms
     global gUsers
+    global gPasswords
+
     room = data['room']
+    password = data['password']
+    set_password = data['set_password']
     sid = request.sid
     username = get_username(sid)
     if username == None:
@@ -109,24 +110,9 @@ def on_join(data):
     else:
         roomIdx = get_roomIdx(room)
         if roomIdx !=None:
-            usersInRoom = len(gRooms[roomIdx].get("users"))
-            if  usersInRoom < ROOM_CAP:
-                join_room(room)
-                session['receive_count'] = session.get('receive_count', 0) + 1
-                print(username + ' has entered the room: ' + room)
-                emit('my_response', {'data': username + ' has entered the room.',
-                                     'count': session['receive_count']},
-                     broadcast=True)
-                gRooms[roomIdx]["users"].append(username)
-                emit('rooms_status', {'rooms': str(gRooms)}, broadcast=True)
-                emit('log_room', {'data': 'User ' + username + ' has entered the room.'},
-                     to=room)
-                emit('update_room_name', {'room': room})
-            else:
-                session['receive_count'] = session.get('receive_count', 0) + 1
-                print(username + ' cannot enter the room: ' + room + '. Users in the room: ' +str(usersInRoom)+'/'+str(ROOM_CAP))
-                emit('my_response', {'data': username + ' cannot enter the room: ' + room + '. Users in the room: ' +str(usersInRoom)+'/'+str(ROOM_CAP),
-                                     'count': session['receive_count']})
+            session['receive_count'] = session.get('receive_count', 0) + 1
+            emit('my_response', {'data': room + ' already exists.',
+                                 'count': session['receive_count']})
         else:
             join_room(room)
             session['receive_count'] = session.get('receive_count', 0) + 1
@@ -136,28 +122,79 @@ def on_join(data):
                                  'count': session['receive_count']}, broadcast=True)
             emit('log_room', {'data': room + ' has been created. '+username + ' has entered the room.'},
                  to=room)
-            gRooms.append({"room": room, "users": [username]})
+            gRooms.append({"room": room, "users": [username], "set_password": set_password})
             emit('rooms_status', {'rooms': str(gRooms)}, broadcast=True)
             emit('update_room_name', {'room': room})
+            gPasswords.append({"room": room, "password": password, "set_password": set_password})
 
-        join_room(room)
+
+@socketio.on('join')
+def on_join(data):
+    global gRooms
+    global gUsers
+    global gPasswords
+    password_correct = False
+
+    room = data['room']
+    sid = request.sid
+    username = get_username(sid)
+    if username == None:
+        emit('my_response', {'data': "You have to log in." ,
+                             'count': session['receive_count']})
+    else:
+        roomIdx = get_roomIdx(room)
         session['receive_count'] = session.get('receive_count', 0) + 1
-        print(username + ' has entered the room: ' + room)
-        emit('my_response', {'data': username + ' has entered the room.',
-                             'count': session['receive_count']},
-             to=room)
+        if roomIdx !=None:
+            usersInRoom = len(gRooms[roomIdx].get("users"))
+            if  usersInRoom < ROOM_CAP:
+                password = next((x["password"] for i, x in enumerate(gPasswords) if x["room"] == room), None)
+                set_password = next((x["set_password"] for i, x in enumerate(gPasswords) if x["room"] == room), None)
+
+                if set_password:
+                    cb = call('request_password', {'room': room})
+                    if cb == password:
+                        password_correct = True
+                        print("password_correct")
+                    else:
+                        emit('my_response', {'data': 'Password for room: '+room+' incorrect.',
+                                             'count': session['receive_count']})
+
+                print("password_correct "+str(password_correct))
+                if not set_password or password_correct:
+                    print("if not set_password or password_correct")
+                    join_room(room)
+                    print(username + ' has entered the room: ' + room)
+                    emit('my_response', {'data': username + ' has entered the room.',
+                                         'count': session['receive_count']},
+                         broadcast=True)
+                    gRooms[roomIdx]["users"].append(username)
+                    emit('rooms_status', {'rooms': str(gRooms)}, broadcast=True)
+                    emit('log_room', {'data': 'User ' + username + ' has entered the room.'},
+                         to=room)
+                    emit('update_room_name', {'room': room})
+            else:
+                print(username + ' cannot enter the room: ' + room + '. Users in the room: ' +str(usersInRoom)+'/'+str(ROOM_CAP))
+                emit('my_response', {'data': 'You cannot enter the room: ' + room + '. Users in the room: ' +str(usersInRoom)+'/'+str(ROOM_CAP),
+                                     'count': session['receive_count']})
+        else:
+            emit('my_response', {'data': 'Room: '+ room + ' does not exit.',
+                                 'count': session['receive_count']})
 
 
 @socketio.event
-def leave(message):
+def leave():
     global gRooms
     global gUsers
-    room = message['room']
-    leave_room(room)
     sid = request.sid
     username = get_username(sid)
-    roomIdx = get_roomIdx(room)
-    if username != None:
+    if username == None:
+        session['receive_count'] = session.get('receive_count', 0) + 1
+        emit('my_response', {'data': "You have to log in.",
+                             'count': session['receive_count']})
+    else:
+        room = next((x["room"] for i, x in enumerate(gRooms) if username in x["users"]), None)
+        leave_room(room)
+        roomIdx = get_roomIdx(room)
         gRooms[roomIdx]["users"].remove(username)
         emit('log_room', {'data': 'User ' + username+' has left the room.'},
              to=room)
@@ -166,19 +203,30 @@ def leave(message):
 
 
 @socketio.on('close_room')
-def on_close_room(message):
+def on_close_room():
     global gRooms
-    room=message['room']
-    session['receive_count'] = session.get('receive_count', 0) + 1
-    emit('my_response', {'data': 'Room ' + room + ' is closing.',
-                         'count': session['receive_count']},
-         to=room)
-    emit('log_room', {'data': 'Room ' + room + ' is closing.'},
-         to=room)
-    close_room(message['room'])
-    roomIdx = get_roomIdx(room)
-    del gRooms[roomIdx]
-    emit('rooms_status', {'rooms': str(gRooms)}, broadcast=True)
+    global gUsers
+    sid = request.sid
+    username = get_username(sid)
+    if username == None:
+        session['receive_count'] = session.get('receive_count', 0) + 1
+        emit('my_response', {'data': "You have to log in." ,
+                             'count': session['receive_count']})
+    else:
+        room = next((x["room"] for i, x in enumerate(gRooms) if username in x["users"]), None)
+        session['receive_count'] = session.get('receive_count', 0) + 1
+        emit('my_response', {'data': 'Room ' + room + ' is closing.',
+                             'count': session['receive_count']},
+             to=room)
+        emit('log_room', {'data': 'Room ' + room + ' is closing.'},
+             to=room)
+        close_room(room)
+        roomIdx = get_roomIdx(room)
+        del gRooms[roomIdx]
+        emit('rooms_status', {'rooms': str(gRooms)}, broadcast=True)
+        passwordIdx = next((i for i, x in enumerate(gPasswords) if x["room"] == room), None)
+        del gPasswords[passwordIdx]
+        print(gPasswords)
 
 
 @socketio.event
@@ -187,6 +235,7 @@ def outside_room_event(message):
     sid = request.sid
     username = get_username(sid)
     if username == None:
+        session['receive_count'] = session.get('receive_count', 0) + 1
         emit('my_response', {'data': "You have to log in." ,
                              'count': session['receive_count']})
     else:
@@ -201,6 +250,7 @@ def room_post(message):
     sid = request.sid
     username = get_username(sid)
     if username == None:
+        session['receive_count'] = session.get('receive_count', 0) + 1
         emit('my_response', {'data': "You have to log in." ,
                              'count': session['receive_count']})
     else:

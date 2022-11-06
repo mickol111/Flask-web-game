@@ -56,6 +56,13 @@
                     cb();
             });
 
+            socket.on('request_password', function(msg,cb) {
+                let text = 'Room: '+msg.room +'/nEnter password: ';
+                let password = prompt(text, "");
+                if (cb)
+                    cb(password);
+            });
+
             // Interval function that tests message latency by sending a "ping"
             // message. The server then responds with a "pong" message and the
             // round trip time is measured.
@@ -100,7 +107,7 @@
                 return false;
             });
             $('form#leave').submit(function(event) {
-                socket.emit('leave', {room: $('#leave_room').val()});
+                socket.emit('leave');
                 return false;
             });
             $('form#send_room').submit(function(event) {
@@ -112,7 +119,10 @@
                 return false;
             });
             $('form#close').submit(function(event) {
-                socket.emit('close_room', {room: $('#close_room').val()});
+                let conf = confirm("Confirm to close the room.");
+                if (conf){
+                    socket.emit('close_room');
+                }
                 return false;
             });
             $('form#disconnect').submit(function(event) {
@@ -121,6 +131,16 @@
             });
             $('form#rooms_btn').submit(function(event) {
                 socket.emit('rooms_refresh');
+                return false;
+            });
+            $('form#create').submit(function(event) {
+                let set_password
+                if ($('#create_room_checkbox').is(":checked"))
+                    {
+                      set_password = 1;
+                    }
+                else {set_password = 0;}
+                socket.emit('create', {room: $('#create_room').val(), password: $('#create_room_password').val(), set_password: set_password});
                 return false;
             });
         });
@@ -139,12 +159,25 @@
         <input type="text" name="username" id="username" placeholder="User Name">
         <input type="submit" value="Login">
     </form>
+    <form id="disconnect" method="POST" action="#">
+        <input type="submit" value="Disconnect">
+    </form>
     <div id="rooms" float="right">
         <h2>Rooms:</h2>
         <form id="rooms_btn" method="POST" action="#">
             <input type="submit" value="Refresh">
         </form>
         <div id="rooms_text"></div>
+        <form id="join" method="POST" action='#'>
+            <input type="text" name="join_room" id="join_room" placeholder="Room Name">
+            <input type="submit" value="Join Room">
+        </form>
+        <form id="create" method="POST" action='#'>
+            <input type="text" name="create_room" id="create_room" placeholder="Room Name">
+            <input type="password" name="create_room_password" id="create_room_password" placeholder="password">
+            <input type="checkbox" name="create_room_checkbox" id="create_room_checkbox">
+            <input type="submit" value="Create Room">
+        </form>
     </div>
     <div id="main">
         <div id="lobby" style="width:50%; display:inline-block; float: left; background: green;">
@@ -157,31 +190,22 @@
                 <input type="text" name="broadcast_data" id="broadcast_data" placeholder="Message">
                 <input type="submit" value="Broadcast">
             </form>
-            <form id="join" method="POST" action='#'>
-                <input type="text" name="join_room" id="join_room" placeholder="Room Name">
-                <input type="submit" value="Join Room">
-            </form>
-            <form id="leave" method="POST" action='#'>
-                <input type="text" name="leave_room" id="leave_room" placeholder="Room Name">
-                <input type="submit" value="Leave Room">
-            </form>
             <form id="send_room" method="POST" action='#'>
                 <input type="text" name="room_name" id="room_name" placeholder="Room Name">
                 <input type="text" name="room_data" id="room_data" placeholder="Message">
                 <input type="submit" value="Send to Room">
-            </form>
-            <form id="close" method="POST" action="#">
-                <input type="text" name="close_room" id="close_room" placeholder="Room Name">
-                <input type="submit" value="Close Room">
-            </form>
-            <form id="disconnect" method="POST" action="#">
-                <input type="submit" value="Disconnect">
             </form>
             <h2>Receive:</h2>
             <div id="log" style="overflow:scroll; height:400px;"></div>
         </div>
         <div id="room_box" style="width:50%; display:inline-block; float: right; background: pink;">
             <h3 id="room_box_name">Room: None</h3>
+            <form id="leave" method="POST" action='#'>
+                <input type="submit" value="Leave Room">
+            </form>
+            <form id="close" method="POST" action="#">
+                <input type="submit" value="Close Room">
+            </form>
             <div id="room_log" style="overflow:scroll; height:400px;"></div>
             <form id="room_box_send" method="POST" action='#'>
                 <input type="text" name="room_data" id="room_box_data" placeholder="Message">
