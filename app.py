@@ -47,14 +47,16 @@ def index():
 
 
 @socketio.event
-def my_event(message):
+def echo(message):
     emit('my_response', {'data': message['data']})
 
 
 @socketio.event
 def my_broadcast_event(message):
-    emit('my_response',
-         {'data': message['data']},
+    global gUsers
+    sid = request.sid
+    emit('emit_lobby',
+         {'username': get_username(sid), 'data': message['data']},
          broadcast=True)
 
 
@@ -149,7 +151,7 @@ def on_join(data):
                     print("if not set_password or password_correct")
                     join_room(room)
                     print(username + ' has entered the room: ' + room)
-                    emit('my_response', {'data': username + ' has entered the room.'},
+                    emit('my_response', {'data': username + ' has entered the room: ' + room + '.'},
                          broadcast=True)
                     gRooms[roomIdx]["users"].append(username)
                     emit('rooms_status', {'rooms': str(gRooms)}, broadcast=True)
