@@ -4,7 +4,7 @@ from flask import Flask, render_template, session, request, \
 from flask_socketio import SocketIO, emit, join_room, leave_room, \
     close_room, call, disconnect,send
 
-
+import keyboard
 
 # Set this variable to "threading", "eventlet" or "gevent" to test the
 # different async modes, or leave it set to None for the application to choose
@@ -38,9 +38,10 @@ def background_thread():
     """Example of how to send server generated events to clients."""
 
     while True:
-        socketio.sleep(5)
-        socketio.emit('my_response',
-                      {'data': 'Server generated event'})
+        game = PongGame(600, 400)
+        game.run()
+        socketio.sleep(10)
+
 
 
 @app.route('/')
@@ -281,5 +282,144 @@ def test_disconnect():
     emit('status', {'count': gCount},broadcast=True)
 
 
+####PONG
+class PongGame(object):
+
+    def __init__(self, width, height):
+        print("init")
+
+
+        #self.board = Board(width, height)
+        # zegar którego użyjemy do kontrolowania szybkości rysowania
+        # kolejnych klatek gry
+        #self.fps_clock = pygame.time.Clock()
+        self.ball = Ball(width=20, height=20, x=width/2, y=height/2)
+        self.player1 = Racket(width=80, height=20, x=width/2, y=height/2)
+
+
+    def run(self):
+        """
+        Główna pętla programu
+        """
+
+        while not self.handle_events():
+            # działaj w pętli do momentu otrzymania sygnału do wyjścia
+            #self.ball.move(self.board, self.player1)
+            print("run")
+            #self.fps_clock.tick(30)
+    def handle_events(self):
+        """
+        Obsługa zdarzeń systemowych, tutaj zinterpretujemy np. ruchy myszką
+
+        :return True jeżeli pygame przekazał zdarzenie wyjścia z gry
+        """
+
+        """
+        for event in pygame.event.get():
+            if event.type == pygame.locals.QUIT:
+                pygame.quit()
+                return True
+
+            if event.type == pygame.locals.MOUSEMOTION:
+                # myszka steruje ruchem pierwszego gracza
+                x, y = event.pos
+                self.player1.move(x)
+        """
+        if keyboard.is_pressed('r'):
+            print("R")
+            socketio.emit('my_response',
+                          {'data': 'Server generated event'})
+            return True
+
+class Drawable(object):
+    """
+    Klasa bazowa dla rysowanych obiektów
+    """
+
+    def __init__(self, width, height, x, y):
+        self.width = width
+        self.height = height
+        self.x = x
+        self.y=y
+
+    def colliderect(self, Drawable):
+        if self.x
+class Ball():
+    """
+    Piłeczka, sama kontroluje swoją prędkość i kierunek poruszania się.
+    """
+    def __init__(self, width, height, x, y, x_speed=3, y_speed=3):
+        self.width=width
+        self.height=height
+        self.x_speed = x_speed
+        self.y_speed = y_speed
+        self.start_x = x
+        self.start_y = y
+        self.x=x
+        self.y=y
+
+    def bounce_y(self):
+        """
+        Odwraca wektor prędkości w osi Y
+        """
+        self.y_speed *= -1
+
+    def bounce_x(self):
+        """
+        Odwraca wektor prędkości w osi X
+        """
+        self.x_speed *= -1
+
+    def reset(self):
+        """
+        Ustawia piłeczkę w położeniu początkowym i odwraca wektor prędkości w osi Y
+        """
+        self.move(self.start_x, self.start_y)
+        self.bounce_y()
+
+    def move(self, board, *args):
+        """
+        Przesuwa piłeczkę o wektor prędkości
+        """
+        self.x += self.x_speed
+        self.y += self.y_speed
+
+        if self.y < 0 or self.y > self.height:
+            self.bounce_x()
+
+        if self.x < 0 or self.x > self.width:
+            self.bounce_y()
+
+        for racket in args:
+            if self.colliderect(racket):
+                self.bounce_y()
+class Racket():
+    """
+    Rakietka, porusza się w osi X z ograniczeniem prędkości.
+    """
+
+    def __init__(self, width, height, x, y, max_speed=10):
+        super(Racket, self).__init__(width, height, x, y)
+        self.y=height/2
+        self.x=width/2
+        self.max_speed = max_speed
+
+
+    def move(self, y):
+        """
+        Przesuwa rakietkę w wyznaczone miejsce.
+        """
+
+        self.y += y
+
+
+
+####
 if __name__ == '__main__':
+    game = PongGame(600, 400)
     socketio.run(app, debug=True)
+
+
+####PONG
+
+####
