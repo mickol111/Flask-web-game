@@ -4,7 +4,7 @@ from flask import Flask, render_template, session, request, \
 from flask_socketio import SocketIO, emit, join_room, leave_room, \
     close_room, call, disconnect,send
 
-
+import random
 
 # Set this variable to "threading", "eventlet" or "gevent" to test the
 # different async modes, or leave it set to None for the application to choose
@@ -42,9 +42,12 @@ def background_thread():
     """Example of how to send server generated events to clients."""
 
     while True:
-        socketio.sleep(5)
-        socketio.emit('my_response',
-                      {'data': 'Server generated event'})
+        socketio.sleep(0.01)
+        for i in gameRooms:
+            if i["game"].get_current_step() == "compare":
+                print("yes compare")
+
+       # socketio.emit('my_response',{'data': 'Server generated event'})
 
 
 @app.route('/')
@@ -311,13 +314,13 @@ def game_create():
                 emit('log_room', {'data': "You need two players two create a game."}, to=room)
                 print("You need two players two create a game.")
             else:
-                game = Game()
+                game = Game(players)
                 gameRooms.append({"room": room, "users": players, "game": game})
                 emit('log_room', {'data': 'Game created.'},
                      to=room)
 
 @socketio.on('game_update')
-def game_create():
+def game_update():
     global gRooms
     global gUsers
     global gameRooms
@@ -338,17 +341,65 @@ def game_create():
                 gameRooms[roomIdx]["game"].update()
                 emit('log_room', {'data': 'Game updated.'},
                      to=room)
+@socketio.on('game_throw')
+def game_thow():
+    global gRooms
+    global gUsers
+    global gameRooms
+    sid = request.sid
+    username = get_username(sid)
+    if username == None:
+        emit('my_response', {'data': "You have to log in."})
+    else:
+        room = next((x["room"] for i, x in enumerate(gRooms) if username in x["users"]), None)
+        if room == None:
+            emit('my_response', {'data': "You have to be in a room to update a game."})
+        else:
+            roomIdx = next((i for i, x in enumerate(gameRooms) if x["room"] == room), None)
+            if roomIdx == None:
+                emit('log_room', {'data': 'Game does not exist.'},
+                     to=room)
+            else:
+                result = gameRooms[roomIdx]["game"].throw(username)
+                emit('log_room', {'data': 'Throw '+username+': '+result},
+                     to=room)
 
 class Game(object):
 
-    def __init__(self, width=100, height=100):
+    def __init__(self, players, width=600, height=400):
         self.x = 0
+        self.steps = {"throw":[False,False,True],"compare":[False,False,False]}
+        self.players=players
+        #self.thrown = [False,False]
+        self.players_dice=[[0],[0]]
+        self.players_scores=[sum(self.players_dice[0]),sum(self.players_dice[1])]
         print("init")
 
     def update(self):
         self.x += 1
         print("update; x=", self.x)
 
+    def get_current_step(self):
+        return next((key for key, value in self.steps.items() if value[2] == True), None)
+    def throw(self, player):
+        playerIdx=self.players.index(player)
+
+        if not self.steps["throw"][playerIdx] and self.steps["throw"]:
+            self.players_dice[playerIdx] = random.randrange(6)+1
+            self.steps["throw"][playerIdx] = True
+
+            if all(self.steps["throw"]):
+                self.steps["compare"][2] = True
+                self.steps["throw"][2] = False
+            print(self.players_dice)
+            return str(self.players_dice[playerIdx])
+        elif not self.steps["throw"]:
+            return "Cannot throw."
+        elif self.steps["throw"][playerIdx]:
+            return "Player have already thrown."
+
+    def compare(self,player):
+        return 0
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)

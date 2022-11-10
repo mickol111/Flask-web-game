@@ -183,6 +183,10 @@ $( "#update_game" ).on( "click", function(event) {
     socket.emit('game_update');
     return false;
 });
+$( "#throw_game" ).on( "click", function(event) {
+    socket.emit('game_throw');
+    return false;
+});
 
 
 	canvas = document.getElementById('canvas');
@@ -271,6 +275,7 @@ ctx.fillStyle = "#8ED6FF";
     <canvas id="canvas" width="600" height="400"></canvas>
     <button id="create_game">create game</button>
     <button id="update_game">update game</button>
+    <button id="throw_game">throw_game</button>
 </div>
 
     <h1>Flask-SocketIO Test</h1>
