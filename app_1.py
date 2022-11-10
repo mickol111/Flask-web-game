@@ -44,14 +44,14 @@ def background_thread():
         socketio.sleep(0.01)
         for i, v in enumerate(gameRooms):
             if v["game"].get_current_step() == "compare":
-                socketio.emit('log_room', {'data': v["game"].compare()})
-                socketio.emit('game_score', {'score0': v["game"].players_scores[0], 'score1': v["game"].players_scores[1]})
+                socketio.emit('log_room', {'data': v["game"].compare()},to=v["room"])
+                socketio.emit('game_score', {'score0': v["game"].players_scores[0], 'score1': v["game"].players_scores[1]},to=v["room"])
             elif v["game"].get_current_step() == "finish":
-                socketio.emit('log_room', {'data': v["game"].finish()})
+                socketio.emit('log_room', {'data': v["game"].finish()},to=v["room"])
                 del v["game"]
                 del gameRooms[i]
                 print(gameRooms)
-                socketio.emit('log_room', {'data': "Game finished."})
+                socketio.emit('log_room', {'data': "Game finished."},to=v["room"])
 
 
        # socketio.emit('my_response',{'data': 'Server generated event'})
@@ -460,8 +460,6 @@ class Game(object):
             return str("Player " + self.players[0]+ " has won.")
         else:
             return str("Player " + self.players[1] + " has won.")
-
-
 
 
 if __name__ == '__main__':
