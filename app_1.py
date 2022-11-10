@@ -25,6 +25,10 @@ gPasswords = []
 #constants
 ROOM_CAP = 2
 
+## game variables
+gameRooms =[]
+
+
 def get_username(sid):
     global gUsers
     return next((x[1] for i, x in enumerate(gUsers) if x[0] == sid), None)
@@ -280,6 +284,70 @@ def test_disconnect():
     print("gCount: " + str(gCount))
     emit('status', {'count': gCount},broadcast=True)
 
+
+######
+@socketio.on('game_create')
+def game_create():
+    global gRooms
+    global gUsers
+    global gameRooms
+    sid = request.sid
+    username = get_username(sid)
+    if username == None:
+        emit('my_response', {'data': "You have to log in."})
+    else:
+        room = next((x["room"] for i, x in enumerate(gRooms) if username in x["users"]), None)
+        if room == None:
+            emit('my_response', {'data': "You have to be in a room to create a game."})
+        else:
+            roomIdx = next((i for i, x in enumerate(gameRooms) if x["room"] == room), None)
+            players = gRooms[get_roomIdx(room)]["users"]
+            print("players = " + str(len(players)))
+            if roomIdx != None:
+                emit('room_log', {'data': "Game already exists in this room."}, to=room)
+                print("Game already exists in this room.")
+                print(gameRooms)
+            elif len(players) < 2:
+                emit('log_room', {'data': "You need two players two create a game."}, to=room)
+                print("You need two players two create a game.")
+            else:
+                game = Game()
+                gameRooms.append({"room": room, "users": players, "game": game})
+                emit('log_room', {'data': 'Game created.'},
+                     to=room)
+
+@socketio.on('game_update')
+def game_create():
+    global gRooms
+    global gUsers
+    global gameRooms
+    sid = request.sid
+    username = get_username(sid)
+    if username == None:
+        emit('my_response', {'data': "You have to log in."})
+    else:
+        room = next((x["room"] for i, x in enumerate(gRooms) if username in x["users"]), None)
+        if room == None:
+            emit('my_response', {'data': "You have to be in a room to update a game."})
+        else:
+            roomIdx = next((i for i, x in enumerate(gameRooms) if x["room"] == room), None)
+            if roomIdx == None:
+                emit('log_room', {'data': 'Game does not exist.'},
+                     to=room)
+            else:
+                gameRooms[roomIdx]["game"].update()
+                emit('log_room', {'data': 'Game updated.'},
+                     to=room)
+
+class Game(object):
+
+    def __init__(self, width=100, height=100):
+        self.x = 0
+        print("init")
+
+    def update(self):
+        self.x += 1
+        print("update; x=", self.x)
 
 
 if __name__ == '__main__':

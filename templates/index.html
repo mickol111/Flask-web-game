@@ -153,6 +153,7 @@
 var canvas, ctx, w, h;
 var ball, paddle1, paddle2;
 var score1, score2;
+const DIE_WH= 60;
 
 var BALL = function(x, y) {
 	this.x = x;
@@ -174,9 +175,13 @@ var PADDLE2 = function(x, y) {
 	this.width = 8;
 	this.height = 80;
 }
-$( "#canvas_btn" ).on( "click", function() {
-  paddle1.y -= 10
-  console.log( paddle1.x );
+$( "#create_game" ).on( "click", function(event) {
+    socket.emit('game_create');
+    return false;
+});
+$( "#update_game" ).on( "click", function(event) {
+    socket.emit('game_update');
+    return false;
 });
 
 
@@ -227,6 +232,10 @@ requestAnimationFrame(beginGame);
 	ctx.closePath();
 	ctx.restore();
 
+die1(60,60);
+ctx.restore();
+
+
 	ctx.strokeStyle = "white";
 	ctx.setLineDash([2]);
 	ctx.beginPath();
@@ -235,6 +244,24 @@ requestAnimationFrame(beginGame);
 	ctx.lineTo(w, h/2);
 	ctx.stroke();
 }
+
+function die1(x,y) {
+var r_dot=8;
+ctx.fillStyle = "#8ED6FF";
+	ctx.beginPath();
+	ctx.save();
+	ctx.fillRect(x, y, DIE_WH, DIE_WH);
+	ctx.closePath();
+	ctx.restore();
+
+	ctx.fillStyle = "black";
+	ctx.beginPath();
+	ctx.arc(x+DIE_WH/2, y+DIE_WH/2, r_dot, 0, 2*Math.PI, true);
+	ctx.closePath();
+	ctx.save();
+	ctx.fill();
+}
+
         });
 
     </script>
@@ -242,7 +269,8 @@ requestAnimationFrame(beginGame);
 <body>
 <div id="game_box">
     <canvas id="canvas" width="600" height="400"></canvas>
-    <button id="canvas_btn">canvas_btn</button>
+    <button id="create_game">create game</button>
+    <button id="update_game">update game</button>
 </div>
 
     <h1>Flask-SocketIO Test</h1>
