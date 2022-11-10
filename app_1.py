@@ -40,12 +40,19 @@ def get_roomIdx(room):
 
 def background_thread():
     """Example of how to send server generated events to clients."""
-
     while True:
         socketio.sleep(0.01)
-        for i in gameRooms:
-            if i["game"].get_current_step() == "compare":
-                print("yes compare")
+        for i, v in enumerate(gameRooms):
+            if v["game"].get_current_step() == "compare":
+                socketio.emit('log_room', {'data': v["game"].compare()})
+                socketio.emit('game_score', {'score0': v["game"].players_scores[0], 'score1': v["game"].players_scores[1]})
+            elif v["game"].get_current_step() == "finish":
+                socketio.emit('log_room', {'data': v["game"].finish()})
+                del v["game"]
+                del gameRooms[i]
+                print(gameRooms)
+                socketio.emit('log_room', {'data': "Game finished."})
+
 
        # socketio.emit('my_response',{'data': 'Server generated event'})
 
@@ -342,7 +349,7 @@ def game_update():
                 emit('log_room', {'data': 'Game updated.'},
                      to=room)
 @socketio.on('game_throw')
-def game_thow():
+def game_throw():
     global gRooms
     global gUsers
     global gameRooms
@@ -368,11 +375,11 @@ class Game(object):
 
     def __init__(self, players, width=600, height=400):
         self.x = 0
-        self.steps = {"throw":[False,False,True],"compare":[False,False,False]}
+        self.steps = {"throw":[False,False,True],"compare":[False,False,False],"finish":[False,False,False]}
         self.players=players
         #self.thrown = [False,False]
         self.players_dice=[[0],[0]]
-        self.players_scores=[sum(self.players_dice[0]),sum(self.players_dice[1])]
+        self.players_scores=[0,0]
         print("init")
 
     def update(self):
@@ -391,15 +398,71 @@ class Game(object):
             if all(self.steps["throw"]):
                 self.steps["compare"][2] = True
                 self.steps["throw"][2] = False
-            print(self.players_dice)
             return str(self.players_dice[playerIdx])
         elif not self.steps["throw"]:
             return "Cannot throw."
         elif self.steps["throw"][playerIdx]:
             return "Player have already thrown."
 
-    def compare(self,player):
-        return 0
+    def compare(self):
+        coms = [str(self.players[0]+" scores."), str(self.players[1]+" scores."), "Draw."]
+        com=-1
+        self.steps["compare"][2] = False
+        self.steps["throw"] = [False,False,True]
+
+        if self.players_dice[0] > self.players_dice[1]:
+            self.players_scores[0] += 1
+            print(self.players_scores)
+            com=0
+
+        elif self.players_dice[0] < self.players_dice[1]:
+            self.players_scores[1] += 1
+            print(self.players_scores)
+            com=1
+
+        else:
+            print(self.players_scores)
+            com=2
+        self.steps["compare"][2] = False
+        if self.players_scores[0]>=3:
+            self.steps["finish"][2] = True
+            return
+
+        else:
+            self.steps["throw"] = [False,False,True]
+    def compare(self):
+        coms = [str(self.players[0]+" scores."), str(self.players[1]+" scores."), "Draw."]
+        com=-1
+        self.steps["compare"][2] = False
+
+        if self.players_dice[0] > self.players_dice[1]:
+            self.players_scores[0] += 1
+            print(self.players_scores)
+            com=0
+
+        elif self.players_dice[0] < self.players_dice[1]:
+            self.players_scores[1] += 1
+            print(self.players_scores)
+            com=1
+
+        else:
+            print(self.players_scores)
+            com=2
+        self.steps["compare"][2] = False
+        if self.players_scores[0]>=3 or self.players_scores[1]>=3:
+            self.steps["finish"][2] = True
+        else:
+            self.steps["throw"] = [False,False,True]
+        return coms[com]
+    def finish(self):
+        print("finish")
+        if self.players_scores[0]>self.players_scores[1]:
+            return str("Player " + self.players[0]+ " has won.")
+        else:
+            return str("Player " + self.players[1] + " has won.")
+
+
+
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
