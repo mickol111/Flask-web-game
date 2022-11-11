@@ -27,6 +27,16 @@ ROOM_CAP = 2
 
 ## game variables
 gameRooms =[]
+HANDS = {
+    "high card": 0,
+    "one pair": 1,
+    "two pairs": 2,
+    "three of a kind": 3,
+    "straight": 4,
+    "full house": 5,
+    "four of a kind": 6,
+    "five of a kind": 7
+}
 
 
 def get_username(sid):
@@ -44,13 +54,12 @@ def background_thread():
         socketio.sleep(0.01)
         for i, v in enumerate(gameRooms):
             if v["game"].get_current_step() == "compare":
-                socketio.emit('log_room', {'data': v["game"].compare()},to=v["room"])
+                socketio.emit('log_room', {'data': v["game"].compare()}, to=v["room"])
                 socketio.emit('game_score', {'score0': v["game"].players_scores[0], 'score1': v["game"].players_scores[1]},to=v["room"])
             elif v["game"].get_current_step() == "finish":
                 socketio.emit('log_room', {'data': v["game"].finish()},to=v["room"])
                 del v["game"]
                 del gameRooms[i]
-                print(gameRooms)
                 socketio.emit('log_room', {'data': "Game finished."},to=v["room"])
 
 
@@ -193,6 +202,13 @@ def leave():
         room = next((x["room"] for i, x in enumerate(gRooms) if username in x["users"]), None)
         leave_room(room)
         roomIdx = get_roomIdx(room)
+
+        gameRoomIdx = next((i for i, x in enumerate(gameRooms) if x["room"] == room), None)
+        if gameRoomIdx != None:
+            del gameRooms[gameRoomIdx]["game"]
+            del gameRooms[gameRoomIdx]
+            socketio.emit('log_room', {'data': "Game closing. User left the room"}, to=room)
+
         gRooms[roomIdx]["users"].remove(username)
         emit('log_room', {'data': 'User ' + username+' has left the room.'},
              to=room)
@@ -204,6 +220,7 @@ def leave():
 def on_close_room():
     global gRooms
     global gUsers
+    global gameRooms
     sid = request.sid
     username = get_username(sid)
     if username == None:
@@ -216,6 +233,13 @@ def on_close_room():
              to=room)
         close_room(room)
         roomIdx = get_roomIdx(room)
+
+        gameRoomIdx = next((i for i, x in enumerate(gameRooms) if x["room"] == room), None)
+        if gameRoomIdx != None:
+            del gameRooms[gameRoomIdx]["game"]
+            del gameRooms[gameRoomIdx]
+            socketio.emit('log_room', {'data': "Game closing."}, to = room)
+
         del gRooms[roomIdx]
         emit('rooms_status', {'rooms': str(gRooms)}, broadcast=True)
         passwordIdx = next((i for i, x in enumerate(gPasswords) if x["room"] == room), None)
@@ -286,7 +310,23 @@ def test_disconnect():
     global gUsers
     sid = request.sid
     userIdx = next((i for i, x in enumerate(gUsers) if x[0] == sid), None)
+    username = get_username(sid)
+    room = next((x["room"] for i, x in enumerate(gRooms) if username in x["users"]), None)
     if userIdx!=None:
+        if room!= None:
+            leave_room(room)
+            roomIdx = get_roomIdx(room)
+
+            gameRoomIdx = next((i for i, x in enumerate(gameRooms) if x["room"] == room), None)
+            if gameRoomIdx != None:
+                del gameRooms[gameRoomIdx]["game"]
+                del gameRooms[gameRoomIdx]
+                socketio.emit('log_room', {'data': "Game closing. User has disconnected"}, to=room)
+
+            gRooms[roomIdx]["users"].remove(username)
+            emit('log_room', {'data': 'User ' + username+' has disconnected.'},
+                 to=room)
+            emit('rooms_status', {'rooms': str(gRooms)}, broadcast=True)
         del gUsers[userIdx]
         print('User removed. Users list: '+str(gUsers))
     print('Client disconnected', request.sid)
@@ -377,7 +417,7 @@ class Game(object):
         self.x = 0
         self.steps = {"throw":[False,False,True],"compare":[False,False,False],"finish":[False,False,False]}
         self.players=players
-        #self.thrown = [False,False]
+        self.hands = []
         self.players_dice=[[0],[0]]
         self.players_scores=[0,0]
         print("init")
@@ -392,7 +432,9 @@ class Game(object):
         playerIdx=self.players.index(player)
 
         if not self.steps["throw"][playerIdx] and self.steps["throw"]:
-            self.players_dice[playerIdx] = random.randrange(6)+1
+            vals =[random.randrange(6)+1 for i in range(5)]
+            vals.sort(reverse=True)
+            self.players_dice[playerIdx] = vals
             self.steps["throw"][playerIdx] = True
 
             if all(self.steps["throw"]):
@@ -402,57 +444,21 @@ class Game(object):
         elif not self.steps["throw"]:
             return "Cannot throw."
         elif self.steps["throw"][playerIdx]:
-            return "Player have already thrown."
+            return "Player have already thrown dice."
+
 
     def compare(self):
         coms = [str(self.players[0]+" scores."), str(self.players[1]+" scores."), "Draw."]
         com=-1
-        self.steps["compare"][2] = False
-        self.steps["throw"] = [False,False,True]
+        self.hands = [identify_hand(self.players_dice[0]), identify_hand(self.players_dice[1])]
+        com = compare_hands(self.hands, self.players_scores, com)
 
-        if self.players_dice[0] > self.players_dice[1]:
-            self.players_scores[0] += 1
-            print(self.players_scores)
-            com=0
-
-        elif self.players_dice[0] < self.players_dice[1]:
-            self.players_scores[1] += 1
-            print(self.players_scores)
-            com=1
-
-        else:
-            print(self.players_scores)
-            com=2
-        self.steps["compare"][2] = False
-        if self.players_scores[0]>=3:
-            self.steps["finish"][2] = True
-            return
-
-        else:
-            self.steps["throw"] = [False,False,True]
-    def compare(self):
-        coms = [str(self.players[0]+" scores."), str(self.players[1]+" scores."), "Draw."]
-        com=-1
-        self.steps["compare"][2] = False
-
-        if self.players_dice[0] > self.players_dice[1]:
-            self.players_scores[0] += 1
-            print(self.players_scores)
-            com=0
-
-        elif self.players_dice[0] < self.players_dice[1]:
-            self.players_scores[1] += 1
-            print(self.players_scores)
-            com=1
-
-        else:
-            print(self.players_scores)
-            com=2
         self.steps["compare"][2] = False
         if self.players_scores[0]>=3 or self.players_scores[1]>=3:
             self.steps["finish"][2] = True
         else:
             self.steps["throw"] = [False,False,True]
+        print(coms[com])
         return coms[com]
     def finish(self):
         print("finish")
@@ -461,6 +467,112 @@ class Game(object):
         else:
             return str("Player " + self.players[1] + " has won.")
 
+
+def find_max_len(lst):
+    #maxList = max(lst, key=lambda i: len(i))
+    if len(lst) != 0:
+        maxIdx = max((len(l), i, l[0]) for i, l in enumerate(lst))
+        #maxLength = len(maxList)
+        return maxIdx[0], maxIdx[1], maxIdx[2]
+    else:
+        return -1, -1, -1
+
+def all_max_len(lst):
+    lstTemp=lst.copy()
+    maxLen = 0
+    maxLenTemp=0
+    maxLenIdx = []
+    idx = 0
+    i=0
+    while True:
+        maxLenTemp,idx, val = find_max_len(lstTemp)
+        if maxLenTemp < maxLen:
+            break
+        else:
+            maxLen = maxLenTemp
+            maxLenIdx.append(idx)
+            del lstTemp[idx]
+            i += 1
+    return [maxLenIdx, maxLen]
+
+
+def identify_hand(dice):
+    hand = 0
+    hand_values = []
+    max_other_value = 0
+
+    values = set(dice)
+    newlist = [[y for y in dice if y == x] for x in values]
+    newlist_mov = newlist.copy()
+    if all_max_len(newlist)[1] == 5:
+        hand = 7
+        hand_values = [newlist[all_max_len(newlist)[0][0]][0]]
+    elif all_max_len(newlist)[1] == 4:
+        hand = 6
+        hand_values = [newlist[all_max_len(newlist)[0][0]][0]]
+        del newlist_mov[all_max_len(newlist)[0][0]]
+        max_other_value = find_max_len(newlist_mov)[2]
+    elif all_max_len(newlist)[1] == 3:
+        max_value = newlist[all_max_len(newlist)[0][0]][0]
+        del newlist_mov[all_max_len(newlist)[0][0]]
+        max_other_value = find_max_len(newlist_mov)
+        if max_other_value[0] == 2:
+            hand = 5
+            hand_values = [max_value, max_other_value[2]]
+            max_other_value = 0
+        else:
+            hand = 3
+            hand_values = [max_value]
+    elif all_max_len(newlist)[1] == 2:
+        max_value = newlist[all_max_len(newlist)[0][0]][0]
+        del newlist_mov[all_max_len(newlist)[0][0]]
+        max_other_value = find_max_len(newlist_mov)
+        if len(all_max_len(newlist)[0])>1:
+            hand = 2
+            hand_values = [max_value, max_other_value[2]]
+            del newlist_mov[all_max_len(newlist_mov)[0][0]]
+            max_other_value = find_max_len(newlist_mov)[2]
+        else:
+            hand = 1
+            hand_values = [max_value]
+            max_other_value = max_other_value[2]
+    elif all_max_len(newlist)[1] == 1:
+        if sorted(newlist) == sorted([[2],[3],[4],[5],[6]]):
+            hand = 4
+            hand_values = [6]
+        elif sorted(newlist) == sorted([[1],[2],[3],[4],[5]]):
+            hand = 4
+            hand_values = [5]
+        else:
+            hand = 0
+            hand_values = [newlist[all_max_len(newlist)[0][0]][0]]
+            del newlist_mov[all_max_len(newlist_mov)[0][0]]
+            max_other_value = find_max_len(newlist_mov)[2]
+
+    return {"hand": hand, "hand_values": hand_values, "max_other_value": max_other_value}
+
+def compare_hands(hands, players_scores, com):
+    if hands[0]["hand"] > hands[1]["hand"]:
+        com = 0
+    elif hands[0]["hand"] < hands[1]["hand"]:
+        com = 1
+    else:
+        if hands[0]["hand_values"][0] > hands[1]["hand_values"][0]:
+            com = 0
+        elif hands[0]["hand_values"][0] < hands[1]["hand_values"][0]:
+            com = 1
+        else:
+            if hands[0]["max_other_value"] > hands[1]["max_other_value"]:
+                com = 0
+            elif hands[0]["max_other_value"] < hands[1]["max_other_value"]:
+                com = 1
+            else:
+                com = 2
+    if com == 0:
+        players_scores[0] += 1
+    elif com == 1:
+        players_scores[1] += 1
+    return com
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
