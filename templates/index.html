@@ -73,6 +73,16 @@
                 if (cb)
                     cb();
             });
+            socket.on('game_dice', function(msg, cb) {
+                $('#d1l').text(msg.d1);
+                $('#d2l').text(msg.d2);
+                $('#d3l').text(msg.d3);
+                $('#d4l').text(msg.d4);
+                $('#d5l').text(msg.d5);
+
+                if (cb)
+                    cb();
+            });
 
             // Interval function that tests message latency by sending a "ping"
             // message. The server then responds with a "pong" message and the
@@ -155,35 +165,8 @@
                 return false;
             });
 
-            ////
-var canvas, ctx, w, h;
-var ball, paddle1, paddle2;
-var score1, score2;
-const DIE_WH= 60;
-
-var BALL = function(x, y) {
-	this.x = x;
-	this.y = y;
-	this.color = "yellow";
-	this.radius = 20;
-	}
-var PADDLE1 = function(x, y) {
-	this.x = x;
-	this.y = y;
-	this.color = "red";
-	this.width = 8;
-	this.height = 80;
-}
-var PADDLE2 = function(x, y) {
-	this.x = x;
-	this.y = y;
-	this.color = "blue";
-	this.width = 8;
-	this.height = 80;
-}
-$( "#create_game" ).on( "click", function(event) {
+            $( "#create_game" ).on( "click", function(event) {
     socket.emit('game_create');
-    $('#score_game').text('SCORE/n'+ 0 + ' : '+ 0);
     return false;
 });
 $( "#update_game" ).on( "click", function(event) {
@@ -194,6 +177,42 @@ $( "#throw_game" ).on( "click", function(event) {
     socket.emit('game_throw');
     return false;
 });
+
+            $('form#game_dice').submit(function(event) {
+                let arr = [0, 0, 0, 0, 0]
+                if ($('#d1').is(":checked"))
+                    {
+                      arr[0] = 1;
+                    }
+                if ($('#d2').is(":checked"))
+                    {
+                      arr[1] = 1;
+                    }
+                if ($('#d3').is(":checked"))
+                    {
+                      arr[2] = 1;
+                    }
+                if ($('#d4').is(":checked"))
+                    {
+                      arr[3] = 1;
+                    }
+                if ($('#d5').is(":checked"))
+                    {
+                      arr[4] = 1;
+                    }
+                $('#d1l').text('');
+                $('#d2l').text('');
+                $('#d3l').text('');
+                $('#d4l').text('');
+                $('#d5l').text('');
+                $('#d1').prop("checked", false);
+                $('#d2').prop("checked", false);
+                $('#d3').prop("checked", false);
+                $('#d4').prop("checked", false);
+                $('#d5').prop("checked", false);
+                socket.emit('game_rethrow', {d1: arr[0], d2: arr[1],d3: arr[2], d4: arr[3],d5: arr[4]});
+                return false;
+            });
         });
 
     </script>
@@ -268,9 +287,24 @@ $( "#throw_game" ).on( "click", function(event) {
             </div>
             <div id="game_box">
                 <button id="create_game">create game</button>
-                <button id="update_game">update game</button>
                 <button id="throw_game">throw_game</button>
             </div>
+            <div id="game_dice_box">
+                <form id="game_dice" method="POST" action="#">
+                    <input type="checkbox" id ="d1" value = 1>
+                    <label id="d1l"></label>
+                    <input type="checkbox" id ="d2" value = 2>
+                    <label id="d2l"></label>
+                    <input type="checkbox" id ="d3" value = 3>
+                    <label id="d3l"></label>
+                    <input type="checkbox" id ="d4" value = 4>
+                    <label id="d4l"></label>
+                    <input type="checkbox" id ="d5" value = 5>
+                    <label id="d5l"></label><br>
+                    <input type="submit" value="Rethrow">
+                </form>
+            </div>
+        </div>
         </div>
     </div>
 

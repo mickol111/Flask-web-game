@@ -53,9 +53,19 @@ def background_thread():
     while True:
         socketio.sleep(0.01)
         for i, v in enumerate(gameRooms):
-            if v["game"].get_current_step() == "compare":
+            if v["game"].get_current_step() == "throw_send":
+                users, hands = v["game"].get_hand()
+                sid=[0,0]
+                sid[0] = next((x[0] for i, x in enumerate(gUsers) if x[1] == users[0]), None)
+                sid[1] = next((x[0] for i, x in enumerate(gUsers) if x[1] == users[1]), None)
+                for j in range(2):
+                    socketio.emit('game_dice', {'user': users[j],'d1':hands[j][0],'d2':hands[j][1],'d3':hands[j][2],'d4':hands[j][3], 'd5':hands[j][4]}, room = sid[j])
+                    v["game"].throw_send()
+                socketio.emit('log_room', {'data': "To rethrow, check dice and accept."}, to=v["room"])
+            elif v["game"].get_current_step() == "compare":
                 socketio.emit('log_room', {'data': v["game"].compare()}, to=v["room"])
                 socketio.emit('game_score', {'score0': v["game"].players_scores[0], 'score1': v["game"].players_scores[1]},to=v["room"])
+                socketio.emit('log_room', {'data': "Throw again."}, to=v["room"])
             elif v["game"].get_current_step() == "finish":
                 socketio.emit('log_room', {'data': v["game"].finish()},to=v["room"])
                 del v["game"]
@@ -411,26 +421,51 @@ def game_throw():
                 emit('log_room', {'data': 'Throw '+username+': '+result},
                      to=room)
 
+@socketio.on('game_rethrow')
+def game_rethrow(message):
+    global gRooms
+    global gUsers
+    global gameRooms
+    sid = request.sid
+    username = get_username(sid)
+    rethrowIds = [message['d1'],message['d2'],message['d3'],message['d4'],message['d5']]
+
+    if username == None:
+        emit('my_response', {'data': "You have to log in."})
+    else:
+        room = next((x["room"] for i, x in enumerate(gRooms) if username in x["users"]), None)
+        if room == None:
+            emit('my_response', {'data': "You have to be in a room to update a game."})
+        else:
+            roomIdx = next((i for i, x in enumerate(gameRooms) if x["room"] == room), None)
+            if roomIdx == None:
+                emit('log_room', {'data': 'Game does not exist.'},
+                     to=room)
+            else:
+                if gameRooms[roomIdx]["game"].get_current_step() == "rethrow":
+                    result = gameRooms[roomIdx]["game"].rethrow(username,rethrowIds)
+                    emit('log_room', {'data': 'Rethrow ' + username + ': ' + result},
+                         to=room)
+                else:
+                    emit('log_room', {'data': 'Cannot rethrow.'},
+                         to=room)
 class Game(object):
 
     def __init__(self, players, width=600, height=400):
         self.x = 0
-        self.steps = {"throw":[False,False,True],"compare":[False,False,False],"finish":[False,False,False]}
+        self.steps = {"throw":[False,False,True],"throw_send":[False,False,False],"rethrow":[False,False,False],"compare":[False,False,False],"finish":[False,False,False]}
         self.players=players
         self.hands = []
         self.players_dice=[[0],[0]]
         self.players_scores=[0,0]
         print("init")
 
-    def update(self):
-        self.x += 1
-        print("update; x=", self.x)
-
     def get_current_step(self):
         return next((key for key, value in self.steps.items() if value[2] == True), None)
+    def get_hand(self):
+        return self.players, self.players_dice
     def throw(self, player):
         playerIdx=self.players.index(player)
-
         if not self.steps["throw"][playerIdx] and self.steps["throw"]:
             vals =[random.randrange(6)+1 for i in range(5)]
             vals.sort(reverse=True)
@@ -438,30 +473,57 @@ class Game(object):
             self.steps["throw"][playerIdx] = True
 
             if all(self.steps["throw"]):
-                self.steps["compare"][2] = True
+                self.steps["throw_send"][2] = True
                 self.steps["throw"][2] = False
+            self.hands = [identify_hand(self.players_dice[0]), identify_hand(self.players_dice[1])]
             return str(self.players_dice[playerIdx])
         elif not self.steps["throw"]:
             return "Cannot throw."
         elif self.steps["throw"][playerIdx]:
             return "Player have already thrown dice."
 
+    def throw_send(self):
+        self.steps["rethrow"][2] = True
+        self.steps["throw_send"][2] = False
+        self.steps["rethrow"] = [False, False, True]
+
+
+    def rethrow(self,player,rethrowIds):
+        playerIdx=self.players.index(player)
+        if not self.steps["rethrow"][playerIdx] and self.steps["rethrow"]:
+            vals = self.players_dice[playerIdx].copy()
+            for i,v in enumerate(rethrowIds):
+                if v == 1:
+                    vals[i] = random.randrange(6)+1
+            vals.sort(reverse=True)
+            self.players_dice[playerIdx] = vals
+            self.steps["rethrow"][playerIdx] = True
+            if all(self.steps["rethrow"]):
+                self.steps["compare"][2] = True
+                self.steps["rethrow"][2] = False
+
+            self.hands = [identify_hand(self.players_dice[0]), identify_hand(self.players_dice[1])]
+            return str(self.players_dice[playerIdx])
+        elif not self.steps["rethrow"]:
+            return "Cannot rethrow."
+        elif self.steps["rethrow"][playerIdx]:
+            return "Player have already rethrown dice."
 
     def compare(self):
         coms = [str(self.players[0]+" scores."), str(self.players[1]+" scores."), "Draw."]
         com=-1
-        self.hands = [identify_hand(self.players_dice[0]), identify_hand(self.players_dice[1])]
+
         com = compare_hands(self.hands, self.players_scores, com)
 
         self.steps["compare"][2] = False
         if self.players_scores[0]>=3 or self.players_scores[1]>=3:
             self.steps["finish"][2] = True
         else:
+            self.steps["throw"] = [False, False, False]
             self.steps["throw"] = [False,False,True]
-        print(coms[com])
         return coms[com]
     def finish(self):
-        print("finish")
+        print("finish game")
         if self.players_scores[0]>self.players_scores[1]:
             return str("Player " + self.players[0]+ " has won.")
         else:
