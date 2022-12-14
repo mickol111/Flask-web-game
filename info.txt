@@ -1,0 +1,8 @@
+W sprawozdaniu:
+- sposób uruchomienia
+- dodatkowe biblioteki
+-zakomentowanie kodu
+- sposób użycia
+
+Do zrobienia:
+- wygląd strony

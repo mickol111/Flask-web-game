@@ -49,7 +49,6 @@ def get_roomIdx(room):
 
 
 def background_thread():
-    """Example of how to send server generated events to clients."""
     while True:
         socketio.sleep(0.01)
         for i, v in enumerate(gameRooms):
@@ -72,8 +71,6 @@ def background_thread():
                 del gameRooms[i]
                 socketio.emit('log_room', {'data': "Game finished."},to=v["room"])
 
-
-       # socketio.emit('my_response',{'data': 'Server generated event'})
 
 
 @app.route('/')
@@ -420,6 +417,8 @@ def game_throw():
                 result = gameRooms[roomIdx]["game"].throw(username)
                 emit('log_room', {'data': 'Throw '+username+': '+result},
                      to=room)
+                emit('users_dice', {'data1': result, 'username1': username, 'data2': result, 'username2': username},
+                     room=sid)
 
 @socketio.on('game_rethrow')
 def game_rethrow(message):
