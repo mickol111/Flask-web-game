@@ -93,6 +93,11 @@
                 if (cb)
                     cb();
             });
+            socket.on('current_step', function(msg, cb) {
+                $('#current_step_box>h3').text('STEP: '+ msg.data);
+                if (cb)
+                    cb();
+            });
 
             // Interval function that tests message latency by sending a "ping"
             // message. The server then responds with a "pong" message and the
@@ -298,6 +303,9 @@ $( "#throw_game" ).on( "click", function(event) {
             <div id="game_box">
                 <button id="create_game">create game</button>
                 <button id="throw_game">throw_game</button>
+            </div>
+            <div id="current_step_box">
+                <h3></h3>
             </div>
             <div id="users_dice_box">
                 <h3></h3>

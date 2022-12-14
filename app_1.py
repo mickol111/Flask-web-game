@@ -64,15 +64,18 @@ def background_thread():
                     socketio.emit('game_dice', {'user': users[j],'d1':hands[j][0],'d2':hands[j][1],'d3':hands[j][2],'d4':hands[j][3], 'd5':hands[j][4]}, room = sid[j])
                     v["game"].throw_send()
                 socketio.emit('log_room', {'data': "To rethrow, check dice and accept."}, to=v["room"])
+                socketio.emit('current_step', {'data': "Rethrow"}, to=v["room"])
             elif v["game"].get_current_step() == "compare":
                 socketio.emit('log_room', {'data': v["game"].compare()}, to=v["room"])
                 socketio.emit('game_score', {'score0': v["game"].players_scores[0], 'score1': v["game"].players_scores[1]},to=v["room"])
                 socketio.emit('log_room', {'data': "Throw again."}, to=v["room"])
+                socketio.emit('current_step', {'data': "Throw"}, to=v["room"])
             elif v["game"].get_current_step() == "finish":
                 socketio.emit('log_room', {'data': v["game"].finish()},to=v["room"])
                 del v["game"]
                 del gameRooms[i]
                 socketio.emit('log_room', {'data': "Game finished."},to=v["room"])
+                socketio.emit('current_step', {'data': "Game finished"}, to=v["room"])
 
 
 
@@ -375,6 +378,7 @@ def game_create():
                 gameRooms.append({"room": room, "users": players, "game": game})
                 emit('log_room', {'data': 'Game created.'},
                      to=room)
+                socketio.emit('current_step', {'data': "Throw"}, to=room)
 
 @socketio.on('game_update')
 def game_update():
@@ -428,9 +432,11 @@ def game_throw():
                                         'username2': other_player},
                          room=sid)
                     if gameRooms[roomIdx]["game"].get_step_player("throw",other_player):
-                        emit('users_dice', {'data1': player_dice, 'username1': username, 'data2': other_player_dice,
-                                            'username2': other_player},
+                        emit('users_dice', {'data2': player_dice, 'username2': username, 'data1': other_player_dice,
+                                            'username1': other_player},
                              room=get_sid(other_player))
+                    else:
+                        socketio.emit('current_step', {'data': "Waiting for the other player to throw"}, room=sid)
 
                 except Exception as e:
                     print(e)
@@ -468,9 +474,11 @@ def game_rethrow(message):
                                             'username2': other_player},
                              room=sid)
                         if gameRooms[roomIdx]["game"].get_step_player("rethrow", other_player):
-                            emit('users_dice', {'data1': player_dice, 'username1': username, 'data2': other_player_dice,
-                                                'username2': other_player},
+                            emit('users_dice', {'data2': player_dice, 'username2': username, 'data1': other_player_dice,
+                                                'username1': other_player},
                                  room=get_sid(other_player))
+                        else:
+                            socketio.emit('current_step', {'data': "Waiting for the other player to rethrow"}, room=sid)
 
                     except Exception as e:
                         print(e)
@@ -478,7 +486,6 @@ def game_rethrow(message):
                     emit('log_room', {'data': 'Cannot rethrow.'},
                          to=room)
 class Game(object):
-
     def __init__(self, players, width=600, height=400):
         self.x = 0
         self.steps = {"throw":[False,False,True],"throw_send":[False,False,False],"rethrow":[False,False,False],"compare":[False,False,False],"finish":[False,False,False]}
