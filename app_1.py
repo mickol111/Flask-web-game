@@ -38,6 +38,9 @@ HANDS = {
     "five of a kind": 7
 }
 
+def get_sid(username):
+    global gUsers
+    return next((x[0] for i, x in enumerate(gUsers) if x[1] == username), None)
 
 def get_username(sid):
     global gUsers
@@ -421,8 +424,14 @@ def game_throw():
                 emit('log_room', {'data': 'Throw '+username+': '+result},
                      to=room)
                 try:
-                    emit('users_dice', {'data1': player_dice, 'username1': username, 'data2': other_player_dice, 'username2': other_player},
-                        room=sid)
+                    emit('users_dice', {'data1': player_dice, 'username1': username, 'data2': other_player_dice,
+                                        'username2': other_player},
+                         room=sid)
+                    if gameRooms[roomIdx]["game"].get_step_player("throw",other_player):
+                        emit('users_dice', {'data1': player_dice, 'username1': username, 'data2': other_player_dice,
+                                            'username2': other_player},
+                             room=get_sid(other_player))
+
                 except Exception as e:
                     print(e)
 
@@ -451,6 +460,20 @@ def game_rethrow(message):
                     result = gameRooms[roomIdx]["game"].rethrow(username,rethrowIds)
                     emit('log_room', {'data': 'Rethrow ' + username + ': ' + result},
                          to=room)
+                    other_player = gameRooms[roomIdx]["game"].get_other_players_id(username)
+                    player_dice = gameRooms[roomIdx]["game"].get_hand_by_username(username)
+                    other_player_dice = gameRooms[roomIdx]["game"].get_hand_by_username(other_player)
+                    try:
+                        emit('users_dice', {'data1': player_dice, 'username1': username, 'data2': other_player_dice,
+                                            'username2': other_player},
+                             room=sid)
+                        if gameRooms[roomIdx]["game"].get_step_player("rethrow", other_player):
+                            emit('users_dice', {'data1': player_dice, 'username1': username, 'data2': other_player_dice,
+                                                'username2': other_player},
+                                 room=get_sid(other_player))
+
+                    except Exception as e:
+                        print(e)
                 else:
                     emit('log_room', {'data': 'Cannot rethrow.'},
                          to=room)
@@ -467,6 +490,9 @@ class Game(object):
 
     def get_current_step(self):
         return next((key for key, value in self.steps.items() if value[2] == True), None)
+    def get_step_player(self,step,player):
+        playerIdx = self.players.index(player)
+        return self.steps[step][playerIdx]
     def get_hand(self):
         return self.players, self.players_dice
     def get_hand_by_username(self,player):
