@@ -415,10 +415,16 @@ def game_throw():
                      to=room)
             else:
                 result = gameRooms[roomIdx]["game"].throw(username)
+                other_player = gameRooms[roomIdx]["game"].get_other_players_id(username)
+                player_dice = gameRooms[roomIdx]["game"].get_hand_by_username(username)
+                other_player_dice = gameRooms[roomIdx]["game"].get_hand_by_username(other_player)
                 emit('log_room', {'data': 'Throw '+username+': '+result},
                      to=room)
-                emit('users_dice', {'data1': result, 'username1': username, 'data2': result, 'username2': username},
-                     room=sid)
+                try:
+                    emit('users_dice', {'data1': player_dice, 'username1': username, 'data2': other_player_dice, 'username2': other_player},
+                        room=sid)
+                except Exception as e:
+                    print(e)
 
 @socketio.on('game_rethrow')
 def game_rethrow(message):
@@ -463,6 +469,14 @@ class Game(object):
         return next((key for key, value in self.steps.items() if value[2] == True), None)
     def get_hand(self):
         return self.players, self.players_dice
+    def get_hand_by_username(self,player):
+        playerIdx = self.players.index(player)
+        return self.players_dice[playerIdx]
+    def get_other_players_id(self,player):
+        for i in self.players:
+            if i != player:
+                return i
+        return None
     def throw(self, player):
         playerIdx=self.players.index(player)
         if not self.steps["throw"][playerIdx] and self.steps["throw"]:
