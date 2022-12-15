@@ -1,0 +1,29 @@
+
+body {
+    height: 100%;
+    width: 100%;
+}
+
+#header {
+    background-color: red;
+    width: 100%;
+    clear: both;
+
+}
+
+#logo {
+    width: 5%;
+}
+
+#content {
+    background-color: green;
+    width: 100%;
+    height: 80%;
+    clear: both;
+}
+
+#footer {
+    background-color: yellow;
+    width: 100%;
+    clear: both;
+}
