@@ -1,29 +1,88 @@
 
-body {
+* {
+    font-family: "Comic Sans MS", "Comic Sans", cursive;
+}
+
+html, body {
     height: 100%;
     width: 100%;
+    margin: 0;
+    min-height: 500px;
 }
 
 #header {
     background-color: red;
     width: 100%;
+    height: 10%;
     clear: both;
 
 }
 
 #logo {
     width: 5%;
+    float: left;
+    background-color: red;
+    margin: 0.5%
+}
+
+p {
+    font-size: 28px;
+    margin: 1.5% 0;
+}
+
+form#username_form {
+    font-size: 28px;
+}
+
+form#username_form > input {
+    font-size: 28px;
+    width: 36%;
+}
+
+#obrazek {
+    float: left;
+    width: 60%;
+    background-color: red;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+#log {
+    float: left;
+    width: 40%;
+    background-color: red;
+    height: 100%;
+    display: flex;
+    align-items: center;
 }
 
 #content {
     background-color: green;
     width: 100%;
-    height: 80%;
+    height: 85%;
     clear: both;
 }
+
+#lobby {
+   height: 100%;
+   width: 40%;
+   float: left;
+   background-color: cyan;
+}
+
+#room_box {
+    height: 100%;
+    width: 60%;
+    background-color: bisque;
+    float:left
+}
+
 
 #footer {
     background-color: yellow;
     width: 100%;
+    height: 5%;
     clear: both;
+    text-align:center;
 }
