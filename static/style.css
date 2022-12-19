@@ -2,7 +2,6 @@
 * {
     font-family: "Comic Sans MS", "Comic Sans", cursive;
 }
-
 html, body {
     height: 100%;
     width: 100%;
@@ -15,7 +14,6 @@ html, body {
     width: 100%;
     height: 10%;
     clear: both;
-
 }
 
 #logo {
@@ -39,7 +37,7 @@ form#username_form > input {
     width: 36%;
 }
 
-#obrazek {
+div#obrazek {
     float: left;
     width: 60%;
     background-color: red;
@@ -75,7 +73,7 @@ form#username_form > input {
     height: 100%;
     width: 60%;
     background-color: bisque;
-    float:left
+    float: left;
 }
 
 
@@ -84,5 +82,5 @@ form#username_form > input {
     width: 100%;
     height: 5%;
     clear: both;
-    text-align:center;
+    text-align: center;
 }
