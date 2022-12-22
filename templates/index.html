@@ -1,7 +1,8 @@
 <!DOCTYPE HTML>
 <html>
 <head>
-    <title>Flask-SocketIO Test</title>
+    <title>Kokpit</title>
+    <link rel="stylesheet" href="/static/style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js" integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ==" crossorigin="anonymous"></script>
     <script type="text/javascript" charset="utf-8">
@@ -233,7 +234,116 @@ $( "#throw_game" ).on( "click", function(event) {
     </script>
 </head>
 <body>
-    <h1>Flask-SocketIO Test</h1>
+    <div id="header">
+        <div id="obrazek">
+        <img id="logo" src="/static/img/logo.png" />
+        <p>KU2NIK</p>
+        </div>
+        <div id="log2">
+            <form id="username_form" method="POST" action='#'>
+                Username:
+                <input type="text" name="username" id="username" placeholder="User Name">
+                <input type="submit" value="Login">
+            </form>
+            <form id="disconnect" method="POST" action="#">
+                <input type="submit" value="Disconnect">
+            </form>
+        </div>
+    </div>
+    <div id="content">
+        <div id="lobby2">
+            <div id="rooms" float="right">
+                <h2>Rooms:</h2>
+                <form id="create" method="POST" action='#'>
+                    <input type="text" name="create_room" id="create_room" placeholder="Room Name">
+                    <input type="password" name="create_room_password" id="create_room_password" placeholder="password">
+                    <input type="checkbox" name="create_room_checkbox" id="create_room_checkbox">
+                    <input type="submit" value="Create Room">
+                </form>
+                <form id="rooms_btn" method="POST" action="#">
+                    <input type="submit" value="Refresh">
+                </form>
+                <div id="rooms_text"></div>
+                <form id="join" method="POST" action='#'>
+                    <input type="text" name="join_room" id="join_room" placeholder="Room Name">
+                    <input type="submit" value="Join Room">
+                </form>
+                <form id="leave" method="POST" action='#'>
+                    <input type="submit" value="Leave Room">
+                </form>
+                <form id="close" method="POST" action="#">
+                    <input type="submit" value="Close Room">
+                </form>
+             </div>
+
+            <div id="lobby" style="width: 100%; display:inline-block; float: left;">
+            <h2>Send:</h2>
+            <form id="emit" method="POST" action='#'>
+                <input type="text" name="emit_data" id="emit_data" placeholder="Message">
+                <input type="submit" value="Echo">
+            </form>
+            <form id="broadcast" method="POST" action='#'>
+                <input type="text" name="broadcast_data" id="broadcast_data" placeholder="Message">
+                <input type="submit" value="Broadcast">
+            </form>
+            <form id="send_room" method="POST" action='#'>
+                <input type="text" name="room_name" id="room_name" placeholder="Room Name">
+                <input type="text" name="room_data" id="room_data" placeholder="Message">
+                <input type="submit" value="Send to Room">
+            </form>
+            <h2>Receive:</h2>
+            <div id="log"></div>
+            </div>
+        </div>
+
+        <div id="room_box">
+            <div id="glowek">
+            <div id="score_game_box">
+                <p><span id="score_game"></span></p>
+            </div>
+            <div id="game_box">
+                <button id="create_game">create game</button>
+                <button id="throw_game">throw_game</button>
+            </div>
+            <div id="current_step_box">
+                <h3></h3>
+            </div>
+            <div id="users_dice_box">
+                <h3></h3>
+                <p></p>
+            </div>
+            <div id="opponents_dice_box">
+                <h3></h3>
+                <p></p>
+            </div>
+            <div id="game_dice_box">
+                <form id="game_dice" method="POST" action="#">
+                    <input type="checkbox" id ="d1" value = 1>
+                    <label id="d1l"></label>
+                    <input type="checkbox" id ="d2" value = 2>
+                    <label id="d2l"></label>
+                    <input type="checkbox" id ="d3" value = 3>
+                    <label id="d3l"></label>
+                    <input type="checkbox" id ="d4" value = 4>
+                    <label id="d4l"></label>
+                    <input type="checkbox" id ="d5" value = 5>
+                    <label id="d5l"></label><br>
+                    <input type="submit" value="Rethrow">
+                </form>
+            </div>
+            </div>
+            <div id="room_div">
+                <h3 id="room_box_name">Room: None</h3>
+                <div id="room_log" style="overflow-y:scroll; height: 40%;"></div>
+                <form id="room_box_send" method="POST" action='#'>
+                    <input type="text" name="room_data" id="room_box_data" placeholder="Message">
+                    <input type="submit" value="Send">
+                </form>
+            </div>
+        </div>
+    </div>
+    <div id="footer">Footer</div>
+    <!--<h1>Flask-SocketIO Test</h1>
     <p>
       Async mode is: <b>{{ async_mode }}</b><br>
       Current transport is: <b><span id="transport"></span></b><br>
@@ -333,6 +443,6 @@ $( "#throw_game" ).on( "click", function(event) {
         </div>
         </div>
     </div>
-
+-->
 </body>
 </html>
