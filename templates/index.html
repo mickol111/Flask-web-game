@@ -299,24 +299,20 @@ $( "#throw_game" ).on( "click", function(event) {
         <div id="room_box">
             <div id="glowek">
             <div id="score_game_box">
-                <p><span id="score_game"></span></p>
+                <p><span id="score_game">SCORE</span></p>
             </div>
             <div id="game_box">
                 <button id="create_game">create game</button>
                 <button id="throw_game">throw_game</button>
             </div>
             <div id="current_step_box">
-                <h3></h3>
+                <h3>STEP:</h3>
             </div>
             <div id="users_dice_box">
-                <h3></h3>
-                <p></p>
+                <h3>user1</h3>
+                <p>a</p>
             </div>
-            <div id="opponents_dice_box">
-                <h3></h3>
-                <p></p>
-            </div>
-            <div id="game_dice_box">
+                 <div id="game_dice_box">
                 <form id="game_dice" method="POST" action="#">
                     <input type="checkbox" id ="d1" value = 1>
                     <label id="d1l"></label>
@@ -331,6 +327,11 @@ $( "#throw_game" ).on( "click", function(event) {
                     <input type="submit" value="Rethrow">
                 </form>
             </div>
+            <div id="opponents_dice_box">
+                <h3>user2</h3>
+                <p>a</p>
+            </div>
+
             </div>
             <div id="room_div">
                 <h3 id="room_box_name">Room: None</h3>
@@ -342,7 +343,7 @@ $( "#throw_game" ).on( "click", function(event) {
             </div>
         </div>
     </div>
-    <div id="footer">Footer</div>
+    <div id="footer" style="text-decoration: blink underline;">PS_MK_MB_2k23</div>
     <!--<h1>Flask-SocketIO Test</h1>
     <p>
       Async mode is: <b>{{ async_mode }}</b><br>

@@ -90,3 +90,7 @@ div#obrazek {
     clear: both;
     text-align: center;
 }
+
+input {
+    margin: 4px 0;
+}
