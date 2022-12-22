@@ -254,14 +254,17 @@ $( "#throw_game" ).on( "click", function(event) {
         <div id="lobby2">
             <div id="rooms" float="right">
                 <h2>Rooms:</h2>
+                <table id="room_table">
+
+                </table>
+                <form id="rooms_btn" method="POST" action="#">
+                    <input type="submit" value="Refresh">
+                </form>
                 <form id="create" method="POST" action='#'>
                     <input type="text" name="create_room" id="create_room" placeholder="Room Name">
                     <input type="password" name="create_room_password" id="create_room_password" placeholder="password">
                     <input type="checkbox" name="create_room_checkbox" id="create_room_checkbox">
                     <input type="submit" value="Create Room">
-                </form>
-                <form id="rooms_btn" method="POST" action="#">
-                    <input type="submit" value="Refresh">
                 </form>
                 <div id="rooms_text"></div>
                 <form id="join" method="POST" action='#'>
@@ -343,7 +346,7 @@ $( "#throw_game" ).on( "click", function(event) {
             </div>
         </div>
     </div>
-    <div id="footer" style="text-decoration: blink underline;">PS_MK_MB_2k23</div>
+    <div id="footer" style="text-decoration: blink underline;"><em>PS_MK_MB_2k23</em></div>
     <!--<h1>Flask-SocketIO Test</h1>
     <p>
       Async mode is: <b>{{ async_mode }}</b><br>
