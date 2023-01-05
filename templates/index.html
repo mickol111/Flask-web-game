@@ -57,7 +57,18 @@
             });
 
             socket.on('rooms_status', function(msg,cb) {
-                $('#rooms_text').text(msg.rooms);
+                str=msg.rooms;
+                str1 = str.replace(/'/g, '"');
+                str1 = JSON.parse(str1);
+                var j = Object.keys(str1).length;
+                diiv = document.getElementById('room_table');
+                if (j>0) {
+                    for(var i = 0; i<j; i++) {
+                        diiv.append(str1[i].room, document.createElement('span'));
+                        diiv.appendChild(document.createElement('br'));
+                    }
+                }
+                //$('#rooms_text').text(msg.rooms);
                 if (cb)
                     cb();
             });
@@ -253,9 +264,9 @@ $( "#throw_game" ).on( "click", function(event) {
         <div id="lobby2">
             <div id="rooms" float="right">
                 <h2>Rooms:</h2>
-                <table id="room_table">
+                <div id="room_table">
 
-                </table>
+                </div>
                 <form id="rooms_btn" method="POST" action="#">
                     <input type="submit" value="Refresh">
                 </form>
@@ -299,7 +310,7 @@ $( "#throw_game" ).on( "click", function(event) {
             <div id="log"></div>
             </div>
         </div>
-
+        <div id="slup"></div>
         <div id="room_box">
             <div id="glowek">
             <div id="score_game_box">

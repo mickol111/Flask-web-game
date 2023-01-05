@@ -81,11 +81,17 @@ div#obrazek {
 
 #room_box {
     height: 100%;
-    width: 60%;
+    width: 59.5%;
     background-color: bisque;
     float: left;
 }
 
+#slup {
+    height: 100%;
+    width: 0.5%;
+    background-color: bisque;
+    float: left;
+}
 
 #footer {
     background-color: yellow;
@@ -106,6 +112,7 @@ input {
 
 #rooms > h2 {
     margin-top: 0;
+    margin-bottom: 0;
 }
 
 #lobby {
@@ -133,4 +140,9 @@ input {
 #form_roomss > form#close {
     float: left;
     margin-left: 2%;
+}
+
+#room_table {
+   height: 45%;
+   overflow-y: scroll;
 }
