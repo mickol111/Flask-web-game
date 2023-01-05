@@ -99,8 +99,7 @@ def my_broadcast_event(message):
 def rooms_refresh():
     global gRooms
     print(str(gRooms))
-    emit('rooms_status', {"rooms": gRooms}, broadcast=True)
-
+    emit('rooms_status', {"rooms": str(gRooms)}, broadcast=True)
 
 @socketio.event
 def user_login(message):
