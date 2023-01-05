@@ -103,7 +103,7 @@
             socket.on('users_dice', function(msg, cb) {
                 $('#users_dice_box>h3').text(msg.username1);
                 $('#users_dice_box>p').text('MY DICE: '+ msg.data1);
-
+                alert(msg.data1);
                 $('#opponents_dice_box>h3').text(msg.username2);
                 $('#opponents_dice_box>p').text("OPPONENT'S DICE: "+ msg.data2);
 
