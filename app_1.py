@@ -99,7 +99,7 @@ def my_broadcast_event(message):
 def rooms_refresh():
     global gRooms
     print(str(gRooms))
-    emit('rooms_status', {'rooms': gRooms}, broadcast=True)
+    emit('rooms_status', {"rooms": gRooms}, broadcast=True)
 
 
 @socketio.event
@@ -148,7 +148,7 @@ def create(data):
             emit('log_room', {'data': room + ' has been created. '+username + ' has entered the room.'},
                  to=room)
             gRooms.append({"room": room, "users": [username], "set_password": set_password})
-            emit('rooms_status', {'rooms': str(gRooms)}, broadcast=True)
+            emit('rooms_status', {"rooms": str(gRooms)}, broadcast=True)
             emit('update_room_name', {'room': room})
             gPasswords.append({"room": room, "password": password, "set_password": set_password})
 
@@ -189,7 +189,7 @@ def on_join(data):
                     emit('my_response', {'data': username + ' has entered the room: ' + room + '.'},
                          broadcast=True)
                     gRooms[roomIdx]["users"].append(username)
-                    emit('rooms_status', {'rooms': str(gRooms)}, broadcast=True)
+                    emit('rooms_status', {"rooms": str(gRooms)}, broadcast=True)
                     emit('log_room', {'data': 'User ' + username + ' has entered the room.'},
                          to=room)
                     emit('update_room_name', {'room': room})
@@ -222,7 +222,7 @@ def leave():
         gRooms[roomIdx]["users"].remove(username)
         emit('log_room', {'data': 'User ' + username+' has left the room.'},
              to=room)
-        emit('rooms_status', {'rooms': str(gRooms)}, broadcast=True)
+        emit('rooms_status', {"rooms": str(gRooms)}, broadcast=True)
         emit('update_room_name', {'room': 'None'})
 
 
@@ -251,7 +251,7 @@ def on_close_room():
             socketio.emit('log_room', {'data': "Game closing."}, to = room)
 
         del gRooms[roomIdx]
-        emit('rooms_status', {'rooms': str(gRooms)}, broadcast=True)
+        emit('rooms_status', {"rooms": str(gRooms)}, broadcast=True)
         passwordIdx = next((i for i, x in enumerate(gPasswords) if x["room"] == room), None)
         del gPasswords[passwordIdx]
         print(gPasswords)
@@ -336,7 +336,7 @@ def test_disconnect():
             gRooms[roomIdx]["users"].remove(username)
             emit('log_room', {'data': 'User ' + username+' has disconnected.'},
                  to=room)
-            emit('rooms_status', {'rooms': str(gRooms)}, broadcast=True)
+            emit('rooms_status', {"rooms": str(gRooms)}, broadcast=True)
         del gUsers[userIdx]
         print('User removed. Users list: '+str(gUsers))
     print('Client disconnected', request.sid)
