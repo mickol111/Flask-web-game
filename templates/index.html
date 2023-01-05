@@ -24,22 +24,22 @@
             // to the client. The data is then displayed in the "Received"
             // section of the page.
             socket.on('my_response', function(msg, cb) {
-                $('#log').append('<br>' + $('<div/>').text('# ' + msg.data).html());
+                $('#log').append($('<div/>').text('# ' + msg.data).html()+'<br>');
                 if (cb)
                     cb();
             });
             socket.on('emit_room', function(msg, cb) {
-                $('#room_log').append('<br>' + $('<div/>').text(msg.username +': ' + msg.data).html());
+                $('#room_log').append($('<div/>').text(msg.username +': ' + msg.data).html()+'<br>');
                 if (cb)
                     cb();
             });
             socket.on('emit_lobby', function(msg, cb) {
-                $('#log').append('<br>' + $('<div/>').text(msg.username +': ' + msg.data).html());
+                $('#log').append($('<div/>').text(msg.username +': ' + msg.data).html()+'<br>');
                 if (cb)
                     cb();
             });
             socket.on('log_room', function(msg, cb) {
-                $('#room_log').append('<br>' + $('<div/>').text('# '+msg.data).html());
+                $('#room_log').append($('<div/>').text('# '+msg.data).html()+'<br>');
                 if (cb)
                     cb();
             });
@@ -230,7 +230,6 @@ $( "#throw_game" ).on( "click", function(event) {
                 return false;
             });
         });
-
     </script>
 </head>
 <body>
@@ -271,12 +270,14 @@ $( "#throw_game" ).on( "click", function(event) {
                     <input type="text" name="join_room" id="join_room" placeholder="Room Name">
                     <input type="submit" value="Join Room">
                 </form>
-                <form id="leave" method="POST" action='#'>
-                    <input type="submit" value="Leave Room">
-                </form>
-                <form id="close" method="POST" action="#">
-                    <input type="submit" value="Close Room">
-                </form>
+                <div id="form_roomss">
+                    <form id="leave" method="POST" action='#'>
+                        <input type="submit" value="Leave Room">
+                    </form>
+                    <form id="close" method="POST" action="#">
+                        <input type="submit" value="Close Room">
+                    </form>
+                </div>
              </div>
 
             <div id="lobby" style="width: 100%; display:inline-block; float: left;">

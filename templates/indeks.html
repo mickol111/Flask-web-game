@@ -23,22 +23,22 @@
             // to the client. The data is then displayed in the "Received"
             // section of the page.
             socket.on('my_response', function(msg, cb) {
-                $('#log').append('<br>' + $('<div/>').text('# ' + msg.data).html());
+                $('#log').append($('<div/>').text('# ' + msg.data).html() +'<br>');
                 if (cb)
                     cb();
             });
             socket.on('emit_room', function(msg, cb) {
-                $('#room_log').append('<br>' + $('<div/>').text(msg.username +': ' + msg.data).html());
+                $('#room_log').append($('<div/>').text(msg.username +': ' + msg.data).html()+ '<br>');
                 if (cb)
                     cb();
             });
             socket.on('emit_lobby', function(msg, cb) {
-                $('#log').append('<br>' + $('<div/>').text(msg.username +': ' + msg.data).html());
+                $('#log').append($('<div/>').text(msg.username +': ' + msg.data).html()+ '<br>');
                 if (cb)
                     cb();
             });
             socket.on('log_room', function(msg, cb) {
-                $('#room_log').append('<br>' + $('<div/>').text('# '+msg.data).html());
+                $('#room_log').append($('<div/>').text('# '+msg.data).html()+ '<br>');
                 if (cb)
                     cb();
             });
@@ -57,6 +57,7 @@
 
             socket.on('rooms_status', function(msg,cb) {
                 $('#rooms_text').text(msg.rooms);
+
                 if (cb)
                     cb();
             });
@@ -282,7 +283,7 @@ $( "#throw_game" ).on( "click", function(event) {
                 <input type="submit" value="Send to Room">
             </form>
             <h2>Receive:</h2>
-            <div id="log" style="overflow:scroll; height:400px;"></div>
+            <div id="log"></div>
         </div>
         <div id="room_box" style="width:50%; display:inline-block; float: right; background: pink;">
             <h3 id="room_box_name">Room: None</h3>
