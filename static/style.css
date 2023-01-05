@@ -34,18 +34,22 @@ form#username_form {
 
 form#username_form > input {
     font-size: 28px;
-    width: 36%;
+    width: 30%;
 }
 
 form#disconnect > input {
     font-size: 28px;
-    margin: 0 0% 0 8%;
+    margin: 0 0% 0 0%;
+    width: 120%;
 }
 
+input[value="Login"] {
+    margin-left:6%;
+}
 
 div#obrazek {
     float: left;
-    width: 50%;
+    width: 42%;
     background-color: red;
     height: 100%;
     display: flex;
@@ -54,7 +58,7 @@ div#obrazek {
 
 #log2 {
     float: left;
-    width: 50%;
+    width: 58%;
     background-color: red;
     height: 100%;
     display: flex;
@@ -93,4 +97,40 @@ div#obrazek {
 
 input {
     margin: 4px 0;
+}
+
+#rooms {
+    height: 50%;
+    background-color: green;
+}
+
+#rooms > h2 {
+    margin-top: 0;
+}
+
+#lobby {
+    background-color: silver;
+    height: 50%;
+}
+
+#lobby > h2 {
+    margin-bottom: 0;
+}
+
+#log {
+    background-color: grey;
+    height: 36%;
+    margin-top: 0;
+    overflow-y: scroll;
+    overflow-wrap: break-word;
+
+}
+
+#form_roomss > form {
+    float: left;
+}
+
+#form_roomss > form#close {
+    float: left;
+    margin-left: 2%;
 }
