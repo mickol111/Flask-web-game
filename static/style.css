@@ -146,3 +146,53 @@ input {
    height: 45%;
    overflow-y: scroll;
 }
+
+#room_table > p:nth-child(even) {
+    font-size: 20px;
+    background-color: olive;
+    margin: 0;
+    padding: 1% 0;
+}
+#room_table > p:nth-child(odd) {
+    font-size: 20px;
+    background-color: silver;
+    margin: 0;
+    padding: 1% 0;
+}
+
+form#rooms_btn {
+    text-align: right;
+}
+
+#room_div {
+    height: 35%;
+    background-color: blueviolet;
+}
+
+#room_div > form#room_box_send {
+    text-align: right;
+
+}
+
+form#room_box_send > input {
+    font-size: 20px;
+    overflow-wrap: break-word;
+}
+
+#room_log {
+    height: 70%;
+    overflow-y: scroll;
+}
+
+#glowek {
+    height: 65%;
+    background-color: white;
+}
+
+#score_game_box > p {
+    margin-top: 0;
+}
+
+#room_box_name {
+    margin: 0;
+}
