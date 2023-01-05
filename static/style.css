@@ -146,6 +146,22 @@ input {
    height: 45%;
    overflow-y: scroll;
 }
+#table_room {
+    width: 100%;
+}
+
+#table_room th {
+    width: 50%;
+}
+#table_room td {
+    width: 50%;
+    border: 1px solid black;
+}
+
+#table_room tr {
+    display:flex;
+    margin: 1%;
+}
 
 #room_table > p:nth-child(even) {
     font-size: 20px;

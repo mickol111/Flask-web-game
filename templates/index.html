@@ -61,14 +61,16 @@
                 str1 = str.replace(/'/g, '"');
                 str1 = JSON.parse(str1);
                 var j = Object.keys(str1).length;
-                diiv = document.getElementById('room_table');
+                var table = document.getElementById('table_room').getElementsByTagName('tbody')[0];
+                var diiv = document.getElementById('room_table');
                 if (j>0) {
-                    diiv.innerHTML = "";
+                table.innerHTML = "";
                     for(var i = 0; i<j; i++) {
-                        spn = document.createElement('p');
-                        diiv.append(spn);
-                        spn.textContent = str1[i].room;
-
+                          let row = table.insertRow(-1);
+                          let c1 = row.insertCell(0);
+                          let c2 = row.insertCell(1);
+                          c1.innerHTML = str1[i].room;
+                          c2.innerHTML = str1[i].users;
                     }
                 }
                 //$('#rooms_text').text(msg.rooms);
@@ -268,7 +270,16 @@ $( "#throw_game" ).on( "click", function(event) {
             <div id="rooms" float="right">
                 <h2>Rooms:</h2>
                 <div id="room_table">
-
+                    <table id="table_room">
+                        <thead>
+                            <tr>
+                                <th>Room name</th>
+                                <th>Users</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
                 </div>
                 <form id="rooms_btn" method="POST" action="#">
                     <input type="submit" value="Refresh">
