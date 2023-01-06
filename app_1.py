@@ -3,27 +3,26 @@ from flask import Flask, render_template, session, request, \
     copy_current_request_context
 from flask_socketio import SocketIO, emit, join_room, leave_room, \
     close_room, call, disconnect,send
-
 import random
 
-async_mode = None
 
-app = Flask(__name__)
+async_mode = None
+app = Flask(__name__)   # utworzenie obiektu Flask
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, async_mode=async_mode)
+socketio = SocketIO(app, async_mode=async_mode) # Utworzenie gniazda sieciowego i przypisanie go do utworzonego obiektu Flask
 thread = None
 thread_lock = Lock()
 
-gCount = 0
-gRooms = []
-gUsers = []
-gPasswords = []
+gCount = 0  # liczba połączonych klientów
+gRooms = [] # tablica zawierająca dane dotyczące pokojów: nazwa pokoju, nazwy uzytkowników w pokoju oraz czy dla pokoju jest ustawione hasło
+gUsers = [] # tablica zawierająca dane dotyczące użytkowników: ID sesji i nazwę użytkownika
+gPasswords = [] # tablica zawierająca hasła do pokojów
 
 #constants
 ROOM_CAP = 2
 
 ## game variables
-gameRooms =[]
+gameRooms =[]   # tablica zawierająca obiekty gry w poszczególnych pokojach i informacje o nich
 HANDS = {
     "high card": 0,
     "one pair": 1,
@@ -35,6 +34,7 @@ HANDS = {
     "five of a kind": 7
 }
 
+### Funkcje służące do uzyskania informacji o nazwie użytkownika na podstawie jego ID, itp.
 def get_sid(username):
     global gUsers
     return next((x[0] for i, x in enumerate(gUsers) if x[1] == username), None)
@@ -48,10 +48,11 @@ def get_roomIdx(room):
     return next((i for i, x in enumerate(gRooms) if x["room"] == room), None)
 
 
+### Wątek działający w tle, w którym w pętli wykonywane są operacje związane z grą.
 def background_thread():
     while True:
-        socketio.sleep(0.01)
-        for i, v in enumerate(gameRooms):
+        socketio.sleep(0.01) # Pętla jest wykonywana co 0.01 sekundy.
+        for i, v in enumerate(gameRooms): # Pętla iterująca to wszystkich utworzonych grach i sprawdzająca dla nich warunki.
             if v["game"].get_current_step() == "throw_send":
                 users, hands = v["game"].get_hand()
                 sid=[0,0]
@@ -60,7 +61,8 @@ def background_thread():
                 for j in range(2):
                     socketio.emit('game_dice', {'user': users[j],'d1':hands[j][0],'d2':hands[j][1],'d3':hands[j][2],'d4':hands[j][3], 'd5':hands[j][4]}, room = sid[j])
                     v["game"].throw_send()
-                socketio.emit('log_room', {'data': "To rethrow, check dice and accept."}, to=v["room"])
+                socketio.emit('log_room', {'data': "To rethrow, check dice and accept."}, to=v["room"]) # to=room - dane
+                # wysłane do użytkowników znajdujących się w pokoju o podanym ID sesji połączenia.
                 socketio.emit('current_step', {'data': "Rethrow"}, to=v["room"])
             elif v["game"].get_current_step() == "compare":
                 socketio.emit('log_room', {'data': v["game"].compare()}, to=v["room"])
@@ -75,34 +77,37 @@ def background_thread():
                 socketio.emit('current_step', {'data': "Game finished"}, to=v["room"])
 
 
-
-@app.route('/')
-def index():
+@app.route('/') # wywoływane po wpisaniu adresu serwera w przeglądarce
+def index(): # funkcja renderująca stronę HTML
     return render_template('index.html', async_mode=socketio.async_mode)
 
 
+### Funkcje obsługujące zdarzenia związane z gniazdem sieciowym.
+# Funkcje z dekoratorem @socketio.event wywoływane są po wyemitowaniu przez klienta danych z podaniem nazwy funkcji, np. 'echo'.
 @socketio.event
-def echo(message):
+def echo(message): # Funkcja zwraca wysłane przez klienta dane do tego klienta. Dane te są wydrukowane tylko u klienta, który je wysłał.
     emit('my_response', {'data': message['data']})
 
 
 @socketio.event
-def my_broadcast_event(message):
+def my_broadcast_event(message): # Funkcja realizująca broadcast do wszystkich połączonych aplikacji klienta, z podaniem nazwy użytkownika, który wysłał wiadomość.
     global gUsers
-    sid = request.sid
+    sid = request.sid # odczytanie ID sesji połączenia
     emit('emit_lobby',
          {'username': get_username(sid), 'data': message['data']},
          broadcast=True)
 
 
 @socketio.event
-def rooms_refresh():
+def rooms_refresh(): # Funkcja odświeżająca tablicę z pokojami i znajdującymi się w nich użytkownikami.
     global gRooms
     print(str(gRooms))
     emit('rooms_status', {"rooms": str(gRooms)}, broadcast=True)
 
+
 @socketio.event
-def user_login(message):
+def user_login(message): # Funkcja wywoływana po wpisaniu nazwy użytkownika i naciśnięciu przycisku Login.
+    # Jeżeli wprowadzona nazwa uzytkownika nie jest zajęta, do tablicy z użytkownikami dodawany jest nowy wpis, zawierający ID sesjji i nazwę użytkownika.
     global gUsers
     username = message['username']
     sid = request.sid
@@ -121,8 +126,14 @@ def user_login(message):
         print("Username is taken: " + username)
         emit('my_response', {'data': 'Username: '+username+' is already taken.'})
 
-@socketio.on('create')
-def create(data):
+
+# @socketio.on('identyfikator') tworzy handler eventu po stronie serwera.
+@socketio.on('create') # Funkcja jest wywoływana w odpowiedzi na socket.emit('create', ... po stronie klienta.
+def create(data): # Funkcja wywoływana po wprowadzeniu przez użytkownika danych i naciśnięciu przycisku Create Room.
+    # Jeżeli użytkownik jest zalogowany i pokój o tej nazwie nie istnieje, do tablicy gRooms dodawany jest
+    # słownik zawierający nazwę pokoju, nabelę z nazwami użytkowników znajdujących się w danym pokoju oraz informację,
+    # czy dostęp do pokoju zabezpieczony jest hasłem.
+    # Do tablicy gPasswords dodawany jest słownik zawierający nazwę pokoju, hasło i informację, czy dostęp do pokoju zabezpieczony jest hasłem
     global gRooms
     global gUsers
     global gPasswords
@@ -139,7 +150,7 @@ def create(data):
         if roomIdx !=None:
             emit('my_response', {'data': room + ' already exists.'})
         else:
-            join_room(room)
+            join_room(room) # Utworzenie pokoju i dołączenie do niego . join_room to funkcja z biblioteki Flask-SocketIO
             print(room + ' has been created.')
             print(username + ' has entered the room: ' + room)
             emit('my_response', {'data': room + ' has been created. '+username + ' has entered the room: ' + room},
@@ -153,7 +164,8 @@ def create(data):
 
 
 @socketio.on('join')
-def on_join(data):
+def on_join(data): # Funkcja wywoływana po wprowadzeniu przez użytkownika nazwy pokoju i naciśnięciu przycisku Join Room.
+    # Dołączenie użytkownika do wybranego pokoju, jeżeli warunki zostały spełnione i wpisanie go do tablicy gRooms.
     global gRooms
     global gUsers
     global gPasswords
@@ -173,7 +185,7 @@ def on_join(data):
                 set_password = next((x["set_password"] for i, x in enumerate(gPasswords) if x["room"] == room), None)
 
                 if set_password:
-                    cb = call('request_password', {'room': room})
+                    cb = call('request_password', {'room': room}) # W ramach callbacku na żądanie 'request_password' serwera, klient wysyła hasło, wprowadzone w popupie.
                     if cb == password:
                         password_correct = True
                         print("password_correct")
@@ -183,11 +195,11 @@ def on_join(data):
                 print("password_correct "+str(password_correct))
                 if not set_password or password_correct:
                     print("if not set_password or password_correct")
-                    join_room(room)
+                    join_room(room) # Dołączenie do pokoju.
                     print(username + ' has entered the room: ' + room)
                     emit('my_response', {'data': username + ' has entered the room: ' + room + '.'},
                          broadcast=True)
-                    gRooms[roomIdx]["users"].append(username)
+                    gRooms[roomIdx]["users"].append(username) # Dopisanie użytkownika do tablicy z użytkownikami w odpowiednim słowniku tablicy gRooms
                     emit('rooms_status', {"rooms": str(gRooms)}, broadcast=True)
                     emit('log_room', {'data': 'User ' + username + ' has entered the room.'},
                          to=room)
@@ -200,7 +212,8 @@ def on_join(data):
 
 
 @socketio.event
-def leave():
+def leave(): # Funkcja wywoływana po wprowadzeniu przez użytkownika nazwy pokoju i naciśnięciu przycisku Leave Room.
+    # Powoduje wyjście użytkownika z pokoju i usunięcie go z wpisu dotyczącego danego pokoju w tablicy gRooms.
     global gRooms
     global gUsers
     sid = request.sid
@@ -209,7 +222,7 @@ def leave():
         emit('my_response', {'data': "You have to log in."})
     else:
         room = next((x["room"] for i, x in enumerate(gRooms) if username in x["users"]), None)
-        leave_room(room)
+        leave_room(room) # Wyjście z pokoju
         roomIdx = get_roomIdx(room)
 
         gameRoomIdx = next((i for i, x in enumerate(gameRooms) if x["room"] == room), None)
@@ -226,7 +239,8 @@ def leave():
 
 
 @socketio.on('close_room')
-def on_close_room():
+def on_close_room(): # Funkcja wywoływana po wprowadzeniu przez użytkownika nazwy pokoju i naciśnięciu przycisku Close Room.
+    # Powoduje zamknięcie pokoju i usunięcie dotyczącego go słownika z tablicy gRooms.
     global gRooms
     global gUsers
     global gameRooms
@@ -240,24 +254,25 @@ def on_close_room():
              to=room)
         emit('log_room', {'data': 'Room ' + room + ' is closing.'},
              to=room)
-        close_room(room)
+        close_room(room)    # zamknięcie pokoju
         roomIdx = get_roomIdx(room)
 
         gameRoomIdx = next((i for i, x in enumerate(gameRooms) if x["room"] == room), None)
         if gameRoomIdx != None:
-            del gameRooms[gameRoomIdx]["game"]
-            del gameRooms[gameRoomIdx]
+            del gameRooms[gameRoomIdx]["game"] # usunięcie obiektu gry w danym pokoju
+            del gameRooms[gameRoomIdx]  # usunięcie pozycji dostyczącej pokoju z tablicy gameRooms.
             socketio.emit('log_room', {'data': "Game closing."}, to = room)
 
-        del gRooms[roomIdx]
+        del gRooms[roomIdx] # usunięcie pozycji dotyczącej pokoju z gRooms
         emit('rooms_status', {"rooms": str(gRooms)}, broadcast=True)
         passwordIdx = next((i for i, x in enumerate(gPasswords) if x["room"] == room), None)
-        del gPasswords[passwordIdx]
+        del gPasswords[passwordIdx] # usunięcie pozycji dotyczącej pokoju z gPasswords
         print(gPasswords)
 
 
 @socketio.event
-def outside_room_event(message):
+def outside_room_event(message):    # Funkcja wywoływana po podaniu przez użytkownika nazwy pokoju, wprowadzeniu wiadomości i zatwierzeniu przyciskiem Send to Room.
+    # Powoduje wysłanie wiadomości do podanego pokoju. Wiadomość pojawia się w logu pokoju.
     global gUsers
     sid = request.sid
     username = get_username(sid)
@@ -269,7 +284,8 @@ def outside_room_event(message):
                 to=message['room'])
 
 @socketio.event
-def room_post(message):
+def room_post(message): # Funkcja wywoływana po wprowadzeniu wiadomości i zatwierdzeniu przyciskiem Send.
+    # Powoduje wysłanie wiadomości do pokoju, w którym użytkownik się znajduje
     global gUsers
     global gRooms
     sid = request.sid
