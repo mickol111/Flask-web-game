@@ -134,8 +134,15 @@
                 }
 
                 $('#opponents_dice_box>h3').text(msg.username2);
-                $('#opponents_dice_box>p').text("OPPONENT'S DICE: "+ msg.data2);
+                //$('#opponents_dice_box>p').text("OPPONENT'S DICE: "+ msg.data2);
 
+                var h = Object.keys(msg.data2).length;
+                for (let i = 0; i<h; i++) {
+                    let ajdik_o = "o_" + i;
+                    if(msg.data2[0] !== 0){
+                       document.getElementById(ajdik_o).innerHTML = '<img class="dice_img" src=static/img/'+dices(msg.data2[i])+'>';
+                    }
+                }
                 if (cb)
                     cb();
             });
@@ -420,7 +427,15 @@ $( "#throw_game" ).on( "click", function(event) {
 
             <div id="opponents_dice_box">
                 <h3>user2</h3>
-                <p>a</p>
+                <table id="yourdices">
+                    <tr>
+                        <td id="o_0"><img class="dice_img" src="static/img/rolling-dices.png"></td>
+                        <td id="o_1"><img class="dice_img" src="static/img/rolling-dices.png"></td>
+                        <td id="o_2"><img class="dice_img" src="static/img/rolling-dices.png"></td>
+                        <td id="o_3"><img class="dice_img" src="static/img/rolling-dices.png"></td>
+                        <td id="o_4"><img class="dice_img" src="static/img/rolling-dices.png"></td>
+                    </tr>
+                </table>
             </div>
 
             </div>

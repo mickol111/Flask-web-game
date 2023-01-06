@@ -216,7 +216,6 @@ form#room_box_send > input {
 
 #current_step_box {
     clear: both;
-    text-align:center;
 
 }
 #current_step_box > h3 {
@@ -246,6 +245,11 @@ form#room_box_send > input {
 }
 
 #mydices {
+    width: 100%;
+    border: 1px black solid;
+    text-align: center;
+}
+#yourdices {
     width: 100%;
     border: 1px black solid;
     text-align: center;
