@@ -1,7 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
 
 * {
-    font-family: "Comic Sans MS", "Comic Sans", cursive;
+font-family: Poppins;
 }
+
 html, body {
     height: 100%;
     width: 100%;
@@ -10,16 +12,16 @@ html, body {
 }
 
 #header {
-    background-color: red;
+    background-color: #12203d;
     width: 100%;
     height: 10%;
     clear: both;
+    color: white;
 }
 
 #logo {
-    width: 5%;
+    width: 10%;
     float: left;
-    background-color: red;
     margin: 0.5%
 }
 
@@ -35,22 +37,28 @@ form#username_form {
 form#username_form > input {
     font-size: 28px;
     width: 30%;
+    text-align: center;
+}
+
+form#disconnect {
+    margin-right: 30px;
 }
 
 form#disconnect > input {
     font-size: 28px;
-    margin: 0 0% 0 0%;
-    width: 120%;
+    width: 196px;
+    height: 50px;
 }
 
 input[value="Login"] {
-    margin-left:6%;
+    margin-left:45px;
+    width: 196px;
+    height: 50px;
 }
 
 div#obrazek {
     float: left;
     width: 42%;
-    background-color: red;
     height: 100%;
     display: flex;
     align-items: center;
@@ -59,7 +67,6 @@ div#obrazek {
 #log2 {
     float: left;
     width: 58%;
-    background-color: red;
     height: 100%;
     display: flex;
     align-items: center;
@@ -76,14 +83,14 @@ div#obrazek {
    height: 100%;
    width: 40%;
    float: left;
-   background-color: cyan;
 }
 
 #room_box {
-    height: 100%;
-    width: 59.5%;
-    background-color: bisque;
+    height: 96.5%;
+    width: 59.395%;
     float: left;
+    margin: 10px 0px;
+    border: 0.5px solid black;
 }
 
 #slup {
@@ -94,11 +101,12 @@ div#obrazek {
 }
 
 #footer {
-    background-color: yellow;
+    background-color: #12203d;
     width: 100%;
     height: 5%;
     clear: both;
     text-align: center;
+    color: white;
 }
 
 input {
@@ -106,8 +114,9 @@ input {
 }
 
 #rooms {
-    height: 50%;
-    background-color: green;
+    height: 42%;
+    border: 0.5px solid black;
+    margin: 10px 0;
 }
 
 #rooms > h2 {
@@ -117,7 +126,9 @@ input {
 
 #lobby {
     background-color: silver;
-    height: 50%;
+    border: 1px solid black;
+    margin-bottom: 10px;
+    height: 52.5%;
 }
 
 #lobby > h2 {
@@ -126,10 +137,12 @@ input {
 
 #log {
     background-color: grey;
-    height: 36%;
+    height: 30%;
     margin-top: 0;
     overflow-y: scroll;
     overflow-wrap: break-word;
+    margin-right: 10px;
+    border: 0.5px solid black;
 
 }
 
@@ -143,9 +156,12 @@ input {
 }
 
 #room_table {
-   height: 45%;
+   height: 30%;
    overflow-y: scroll;
+   margin-right: 10px;
+   border: 0.5px solid black;
 }
+
 #table_room {
     width: 100%;
 }
@@ -180,13 +196,20 @@ form#rooms_btn {
     text-align: right;
 }
 
+form#rooms_btn > input {
+    margin: 4px 10px;
+}
+
 #room_div {
-    height: 35%;
+    height: 32%;
+    margin-bottom: 10px;
+    padding-left: 10px;
     background-color: blueviolet;
 }
 
 #room_div > form#room_box_send {
     text-align: right;
+    margin-right: 15px;
 
 }
 
@@ -198,14 +221,17 @@ form#room_box_send > input {
 #room_log {
     height: 70%;
     overflow-y: scroll;
+    border: 0.5px solid black;
+    margin: 0 15px 0 10px;
 }
 
 #glowek {
     height: 65%;
     background-color: white;
+    padding-left: 10px;
 }
 #score_game_box {
-    width: 80%;
+    width: 70%;
     float:left;
 
 }
@@ -223,16 +249,18 @@ form#room_box_send > input {
 }
 
 #game_box {
-    width: 20%;
+    width: 30%;
     float: left;
-    text-align: left;
+    text-align: right;
 }
 
-
+#create_room, #create_room_password, #join_room, #room_name {
+width: 25%;
+}
 
 #create_game {
-    margin-left: 30%;
     margin-top: 2%;
+    margin-right: 17px;
     font-size: 20px;
 }
 
@@ -241,18 +269,14 @@ form#room_box_send > input {
 }
 
 #room_box_name {
-    margin: 0;
+    margin: 0 0 0 0;
 }
 
-#mydices {
-    width: 100%;
+#mydices, #yourdices {
+    margin: 0 10px 0 10px;
     border: 1px black solid;
     text-align: center;
-}
-#yourdices {
-    width: 100%;
-    border: 1px black solid;
-    text-align: center;
+    width: 97%;
 }
 
 .dice_img {
@@ -266,13 +290,20 @@ form#room_box_send > input {
 
 #usr_n {
 float: left;
-width: 81.8%;
+width: 70%;
 }
 
 #navi {
+    width: 30%;
     padding-top: 18.72px;
+    float:left;
+    text-align: right;
 }
 
 #navi >input, button {
     font-size: 20px;
+}
+
+input[value="Rethrow"] {
+    margin-right: 17px;
 }
