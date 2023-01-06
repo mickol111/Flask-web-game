@@ -95,7 +95,7 @@ def my_broadcast_event(message): # Funkcja realizująca broadcast do wszystkich 
     sid = request.sid # odczytanie ID sesji połączenia
     emit('emit_lobby',
          {'username': get_username(sid), 'data': message['data']},
-         broadcast=True)
+         broadcast=True) # broadcast=True - wiadomość emitowana do wszystkich klientów
 
 
 @socketio.event
@@ -300,15 +300,14 @@ def room_post(message): # Funkcja wywoływana po wprowadzeniu wiadomości i zatw
 
 
 @socketio.event
-def disconnect_request():
+def disconnect_request():   # Funkcja wywoływana po naciśnięciu przycisku Disconnect.
+    # Powoduje zakończenie połączenie klienta z serwerem.
     @copy_current_request_context
     def can_disconnect():
         disconnect()
-    # for this emit we use a callback function
-    # when the callback function is invoked we know that the message has been
-    # received and it is safe to disconnect
     emit('my_response',
-         {'data': 'Disconnected!'}, callback=can_disconnect)
+         {'data': 'Disconnected!'}, callback=can_disconnect) # wykorzystano funkcję callback. Gdy jest ona wywołana,
+    # mamy pewność że wiadomość została dostarczona i można się bezpiecznie rozłączyć.
 
 
 @socketio.event
@@ -329,7 +328,8 @@ def connect():
     emit('status', {'count': gCount}, broadcast=True)
 
 
-@socketio.on('disconnect')
+@socketio.on('disconnect') # Identyfikator disconnect jest nazwą zarezerwowaną. Zdarzenie ma miejsce, gdy następuje
+# przerwanie połączenia klienta z serwerem (poprzez naciśnięcie przycisku disconnect lub zamknięcie karty przeglądarki).
 def test_disconnect():
     global gCount
     global gUsers
@@ -339,7 +339,7 @@ def test_disconnect():
     room = next((x["room"] for i, x in enumerate(gRooms) if username in x["users"]), None)
     if userIdx!=None:
         if room!= None:
-            leave_room(room)
+            leave_room(room) # wyjście z pokoju
             roomIdx = get_roomIdx(room)
 
             gameRoomIdx = next((i for i, x in enumerate(gameRooms) if x["room"] == room), None)
@@ -348,11 +348,11 @@ def test_disconnect():
                 del gameRooms[gameRoomIdx]
                 socketio.emit('log_room', {'data': "Game closing. User has disconnected"}, to=room)
 
-            gRooms[roomIdx]["users"].remove(username)
+            gRooms[roomIdx]["users"].remove(username) # usunięcie użytkownika z wpisu dotyczącego pokoju , w którym się znajdował z tablicy gRooms.
             emit('log_room', {'data': 'User ' + username+' has disconnected.'},
                  to=room)
             emit('rooms_status', {"rooms": str(gRooms)}, broadcast=True)
-        del gUsers[userIdx]
+        del gUsers[userIdx] # usunięcie użytkownika z tablicy gUsers
         print('User removed. Users list: '+str(gUsers))
     print('Client disconnected', request.sid)
     gCount -= 1
@@ -360,8 +360,9 @@ def test_disconnect():
     emit('status', {'count': gCount},broadcast=True)
 
 
-######
-@socketio.on('game_create')
+###### Poniższe funkcje dotyczą zdarzeń związanych z grą.
+@socketio.on('game_create') # Funkcja jest wywoływana po naciśnięciu przycisku Game Create.
+# Utworzenie instancji gry dla danego pokoju.
 def game_create():
     global gRooms
     global gUsers
@@ -386,8 +387,9 @@ def game_create():
                 emit('log_room', {'data': "You need two players two create a game."}, to=room)
                 print("You need two players two create a game.")
             else:
-                game = Game(players)
-                gameRooms.append({"room": room, "users": players, "game": game})
+                game = Game(players) # Utworzenie obiektu game podając nazwy obu użytkowników w danym pokoju
+                gameRooms.append({"room": room, "users": players, "game": game}) # Dodanie do tablicy gameRooms słownika
+                # zawierającego nazwę pokoju, tablicę z nazwami użytkowników w danym pokoju i instancję gry.
                 emit('log_room', {'data': 'Game created.'},
                      to=room)
                 socketio.emit('current_step', {'data': "Throw"}, to=room)
