@@ -114,7 +114,7 @@
                     cb();
             });
             socket.on('users_dice', function(msg, cb) {
-                $('#users_dice_box>h3').text(msg.username1);
+                $('#usr_n>h3').text(msg.username1);
                 //$('#users_dice_box>p').text('MY DICE: '+ msg.data1);
                 var j = Object.keys(msg.data1).length;
                 for (let i = 0; i<j; i++) {
