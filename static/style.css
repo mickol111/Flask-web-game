@@ -204,8 +204,40 @@ form#room_box_send > input {
     height: 65%;
     background-color: white;
 }
+#score_game_box {
+    width: 80%;
+    float:left;
 
+}
 #score_game_box > p {
+    margin: 0;
+    font-size: 28px;
+}
+
+#current_step_box {
+    clear: both;
+    text-align:center;
+
+}
+#current_step_box > h3 {
+    margin: 0;
+}
+
+#game_box {
+    width: 20%;
+    float: left;
+    text-align: left;
+}
+
+
+
+#create_game {
+    margin-left: 30%;
+    margin-top: 2%;
+    font-size: 20px;
+}
+
+#users_dice_box >h3 {
     margin-top: 0;
 }
 
@@ -217,4 +249,9 @@ form#room_box_send > input {
     width: 100%;
     border: 1px black solid;
     text-align: center;
+}
+
+.dice_img {
+    height: 64px;
+    width: 64px;
 }

@@ -130,7 +130,7 @@
                 var j = Object.keys(msg.data1).length;
                 for (let i = 0; i<j; i++) {
                     let ajdik = "u_" + i;
-                    document.getElementById(ajdik).innerHTML = '<img class="dice_img" src=static/'+dices(msg.data1[i])+'</img>';
+                    document.getElementById(ajdik).innerHTML = '<img class="dice_img" src=static/img/'+dices(msg.data1[i])+'>';
                 }
 
                 $('#opponents_dice_box>h3').text(msg.username2);
@@ -361,38 +361,63 @@ $( "#throw_game" ).on( "click", function(event) {
             </div>
             <div id="game_box">
                 <button id="create_game">create game</button>
-                <button id="throw_game">throw_game</button>
+
             </div>
             <div id="current_step_box">
                 <h3>STEP:</h3>
             </div>
             <div id="users_dice_box">
                 <h3>user1</h3>
+                <form id="game_dice" method="POST" action="#">
                 <table id="mydices">
                     <tr>
-                        <td id="u_0">1</td>
-                        <td id="u_1">2</td>
-                        <td id="u_2">3</td>
-                        <td id="u_3">4</td>
-                        <td id="u_4">5</td>
+                        <td id="u_0"><img class="dice_img" src="static/img/rolling-dices.png"></td>
+                        <td id="u_1"><img class="dice_img" src="static/img/rolling-dices.png"></td>
+                        <td id="u_2"><img class="dice_img" src="static/img/rolling-dices.png"></td>
+                        <td id="u_3"><img class="dice_img" src="static/img/rolling-dices.png"></td>
+                        <td id="u_4"><img class="dice_img" src="static/img/rolling-dices.png"></td>
+                    </tr>
+                    <tr>
+                            <td>
+                                <input type="checkbox" id ="d1" value = 1>
+                                <label id="d1l"></label>
+                            </td>
+                            <td>
+                                <input type="checkbox" id ="d2" value = 2>
+                                <label id="d2l"></label>
+                            </td>
+                            <td>
+                                <input type="checkbox" id ="d3" value = 3>
+                                <label id="d3l"></label>
+                            </td>
+                            <td>
+                                <input type="checkbox" id ="d4" value = 4>
+                                <label id="d4l"></label>
+                            </td>
+                            <td>
+                                <input type="checkbox" id ="d5" value = 5>
+                                <label id="d5l"></label><br>
+                            </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td><button id="throw_game">throw_game</button></td>
+                        <td><input type="submit" value="Rethrow"></td>
                     </tr>
                 </table>
-            </div>
-                 <div id="game_dice_box">
-                <form id="game_dice" method="POST" action="#">
-                    <input type="checkbox" id ="d1" value = 1>
-                    <label id="d1l"></label>
-                    <input type="checkbox" id ="d2" value = 2>
-                    <label id="d2l"></label>
-                    <input type="checkbox" id ="d3" value = 3>
-                    <label id="d3l"></label>
-                    <input type="checkbox" id ="d4" value = 4>
-                    <label id="d4l"></label>
-                    <input type="checkbox" id ="d5" value = 5>
-                    <label id="d5l"></label><br>
-                    <input type="submit" value="Rethrow">
                 </form>
             </div>
+
+
+
+
+
+
+
+
+
             <div id="opponents_dice_box">
                 <h3>user2</h3>
                 <p>a</p>
