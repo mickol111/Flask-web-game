@@ -110,7 +110,7 @@
             });
 
             socket.on('game_score', function(msg, cb) {
-                $('#score_game').text('SCORE/n'+ msg.score0 + ' : '+ msg.score1);
+                $('#score_game').text('SCORE: '+ msg.score0 + ' : '+ msg.score1);
                 if (cb)
                     cb();
             });
@@ -313,7 +313,7 @@ $( "#throw_game" ).on( "click", function(event) {
                                 <th>Users</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="tbb">
                         </tbody>
                     </table>
                 </div>
@@ -367,7 +367,7 @@ $( "#throw_game" ).on( "click", function(event) {
                 <p><span id="score_game">SCORE</span></p>
             </div>
             <div id="game_box">
-                <button id="create_game">create game</button>
+                <button id="create_game">Create Game</button>
 
             </div>
             <div id="current_step_box">
@@ -412,13 +412,6 @@ $( "#throw_game" ).on( "click", function(event) {
                                 <input type="checkbox" id ="d5" value = 5>
                                 <label id="d5l"></label><br>
                             </td>
-                    </tr>
-                    <tr>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
                     </tr>
                 </table>
                 </form>
