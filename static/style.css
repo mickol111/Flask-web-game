@@ -259,3 +259,20 @@ form#room_box_send > input {
     height: 64px;
     width: 64px;
 }
+
+#mydices td {
+    width: 20%;
+    }
+
+#usr_n {
+float: left;
+width: 81.8%;
+}
+
+#navi {
+    padding-top: 18.72px;
+}
+
+#navi >input, button {
+    font-size: 20px;
+}

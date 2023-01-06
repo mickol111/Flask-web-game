@@ -374,8 +374,15 @@ $( "#throw_game" ).on( "click", function(event) {
                 <h3>STEP:</h3>
             </div>
             <div id="users_dice_box">
-                <h3>user1</h3>
+                <div id="usr_n">
+                    <h3>user1</h3>
+                </div>
                 <form id="game_dice" method="POST" action="#">
+                    <div id="navi">
+                        <button id="throw_game">Throw</button>
+                        <input type="submit" value="Rethrow">
+                    </div>
+
                 <table id="mydices">
                     <tr>
                         <td id="u_0"><img class="dice_img" src="static/img/rolling-dices.png"></td>
@@ -410,8 +417,8 @@ $( "#throw_game" ).on( "click", function(event) {
                         <td></td>
                         <td></td>
                         <td></td>
-                        <td><button id="throw_game">throw_game</button></td>
-                        <td><input type="submit" value="Rethrow"></td>
+                        <td></td>
+                        <td></td>
                     </tr>
                 </table>
                 </form>
