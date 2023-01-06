@@ -6,6 +6,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js" integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ==" crossorigin="anonymous"></script>
     <script type="text/javascript" charset="utf-8">
+    function dices(dice_data){
+     var j = Object.keys(dice_data).length;
+     alert(j);
+    }
+
         $(document).ready(function() {
             // Connect to the Socket.IO server.
             // The connection URL has the following format, relative to the current page:
@@ -103,7 +108,7 @@
             socket.on('users_dice', function(msg, cb) {
                 $('#users_dice_box>h3').text(msg.username1);
                 $('#users_dice_box>p').text('MY DICE: '+ msg.data1);
-                alert(msg.data1);
+                dices(msg.data1);
                 $('#opponents_dice_box>h3').text(msg.username2);
                 $('#opponents_dice_box>p').text("OPPONENT'S DICE: "+ msg.data2);
 
