@@ -212,3 +212,9 @@ form#room_box_send > input {
 #room_box_name {
     margin: 0;
 }
+
+#mydices {
+    width: 100%;
+    border: 1px black solid;
+    text-align: center;
+}
