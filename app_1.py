@@ -560,17 +560,17 @@ class Game(object): # Klasa gry. Silnik gry.
         self.steps["throw_send"][2] = False
         self.steps["rethrow"] = [False, False, True]
 
-    def rethrow(self,player,rethrowIds): # metoda realizująca przerzucenie kości dla gracza
-        playerIdx=self.players.index(player)
+    def rethrow(self, player, rethrowIds): # metoda realizująca przerzucenie kości dla gracza; argumentem jest informacja, które kości są do przerzucenia
+        playerIdx = self.players.index(player)
         if not self.steps["rethrow"][playerIdx] and self.steps["rethrow"]:
             vals = self.players_dice[playerIdx].copy()
-            for i,v in enumerate(rethrowIds):
+            for i, v in enumerate(rethrowIds): # losowanie nowych wartości dla kości oznaczonych do przerzucenia
                 if v == 1:
                     vals[i] = random.randrange(6)+1
             vals.sort(reverse=True)
             self.players_dice[playerIdx] = vals
             self.steps["rethrow"][playerIdx] = True
-            if all(self.steps["rethrow"]):
+            if all(self.steps["rethrow"]): # Jeżeli obaj gracze wykonali przerzucenie, następuje przejście do następnego kroku.
                 self.steps["compare"][2] = True
                 self.steps["rethrow"][2] = False
 
@@ -581,44 +581,51 @@ class Game(object): # Klasa gry. Silnik gry.
         elif self.steps["rethrow"][playerIdx]:
             return "Player have already rethrown dice."
 
-    def compare(self):
+    def compare(self): # metoda realizująca porównanie układów, które posiadają gracze i określająca, kto wygrywa rundę
         coms = [str(self.players[0]+" scores."), str(self.players[1]+" scores."), "Draw."]
         com=-1
 
-        com = compare_hands(self.hands, self.players_scores, com)
+        com = compare_hands(self.hands, self.players_scores, com) # porównanie układów
 
         self.steps["compare"][2] = False
-        if self.players_scores[0]>=3 or self.players_scores[1]>=3:
+        if self.players_scores[0]>=3 or self.players_scores[1]>=3: # Jeżeli któryś z graczy zdobył trzy lub więcej punktów,
+            # przejście do kroku finish.
             self.steps["finish"][2] = True
-        else:
+        else: # W przeciwnym przypadku przejście do kroku throw
             self.steps["throw"] = [False, False, False]
             self.steps["throw"] = [False,False,True]
         return coms[com]
-    def finish(self):
+
+    def finish(self): # Zakończenie gry i wystawienie komunikatu, który gracz wygrał.
         print("finish game")
-        if self.players_scores[0]>self.players_scores[1]:
+        if self.players_scores[0] > self.players_scores[1]:
             return str("Player " + self.players[0]+ " has won.")
         else:
             return str("Player " + self.players[1] + " has won.")
 
 
-def find_max_len(lst):
-    #maxList = max(lst, key=lambda i: len(i))
+# Funkcje wykorzystywane w klasie Game
+def find_max_len(lst): # Wyszukuje warość, która najczęściej pojawiła się na kościach.
+    # Zwraca liczbę wystąpień najczęstszej wartości, ostatnią pozycję kości o najczęstszej wartości i najczęscszą wartość.
     if len(lst) != 0:
         maxIdx = max((len(l), i, l[0]) for i, l in enumerate(lst))
-        #maxLength = len(maxList)
         return maxIdx[0], maxIdx[1], maxIdx[2]
     else:
         return -1, -1, -1
 
-def all_max_len(lst):
-    lstTemp=lst.copy()
+
+def all_max_len(lst): # wyszukuje wszystkie najczęstsze wartości kości
+    # (1 i 2 kości o tej samej wartości mogą wystąpić więcej niż raz)
+    lstTemp = lst.copy() # Konieczne jest wykonanie kopii analizowanej listy z wartościami kości,
+    # ponieważ wykonywane jest usuwanie jej elementów.
     maxLen = 0
-    maxLenTemp=0
+    maxLenTemp = 0
     maxLenIdx = []
     idx = 0
-    i=0
-    while True:
+    i = 0
+    while True: # Najczęściej występujące wartości są identyfikowane, zapisywana jest ostatnia pozycja i liczba wystąpień,
+        # a następnie wartości te są usuwane z listy i operacja jest powtarzana, aż liczba wystąpień najczęstszej wartości
+        # będzie mniejsza od tej zapisanej wcześniej.
         maxLenTemp,idx, val = find_max_len(lstTemp)
         if maxLenTemp < maxLen:
             break
@@ -630,13 +637,14 @@ def all_max_len(lst):
     return [maxLenIdx, maxLen]
 
 
-def identify_hand(dice):
-    hand = 0
+def identify_hand(dice): # identyfikacja układu kości
+    # Funkcja zwraca wartość odpowiadającą układowi kości, wartości tego układu oraz największą wartość poza układem.
+    hand = 0 # wartości zmiennej korespondują z układami zapisanymi w słowniku HANDS
     hand_values = []
     max_other_value = 0
 
-    values = set(dice)
-    newlist = [[y for y in dice if y == x] for x in values]
+    values = set(dice) # unikatowe wartości kości
+    newlist = [[y for y in dice if y == x] for x in values] # zapisanie jednakowych wartości w jednej liście
     newlist_mov = newlist.copy()
     if all_max_len(newlist)[1] == 5:
         hand = 7
@@ -685,24 +693,24 @@ def identify_hand(dice):
 
     return {"hand": hand, "hand_values": hand_values, "max_other_value": max_other_value}
 
-def compare_hands(hands, players_scores, com):
+def compare_hands(hands, players_scores, com): # porównanie układów obu graczy
     if hands[0]["hand"] > hands[1]["hand"]:
         com = 0
     elif hands[0]["hand"] < hands[1]["hand"]:
         com = 1
-    else:
+    else: # Jeżeli układy są takie same, porównywane są wartości układów.
         if hands[0]["hand_values"][0] > hands[1]["hand_values"][0]:
             com = 0
         elif hands[0]["hand_values"][0] < hands[1]["hand_values"][0]:
             com = 1
-        else:
+        else: # Jeżeli ukłądy i ich wartości są takie same, porównywane są największe wartości poza układem.
             if hands[0]["max_other_value"] > hands[1]["max_other_value"]:
                 com = 0
             elif hands[0]["max_other_value"] < hands[1]["max_other_value"]:
                 com = 1
             else:
                 com = 2
-    if com == 0:
+    if com == 0: # Zwiększenie licznika gracza, który wygrał rundę.
         players_scores[0] += 1
     elif com == 1:
         players_scores[1] += 1
