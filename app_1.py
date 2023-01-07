@@ -392,9 +392,9 @@ def game_create():
                 # zawierającego nazwę pokoju, tablicę z nazwami użytkowników w danym pokoju i instancję gry.
                 emit('log_room', {'data': 'Game created.'},
                      to=room)
-                socketio.emit('current_step', {'data': "Throw"}, to=room)
+                socketio.emit('current_step', {'data': "Throw"}, to=room) # przejście do kroku gry Throw
 
-@socketio.on('game_update')
+@socketio.on('game_update') # Funkcja niewykorzystywana w finalnej wersji
 def game_update():
     global gRooms
     global gUsers
@@ -416,7 +416,10 @@ def game_update():
                 gameRooms[roomIdx]["game"].update()
                 emit('log_room', {'data': 'Game updated.'},
                      to=room)
-@socketio.on('game_throw')
+
+
+@socketio.on('game_throw') # Funkcja jest wywoływana po naciśnięciu przycisku Throw.
+# Wykonywany jest rzut kośćmi - metoda throw obiektu klasy Game.
 def game_throw():
     global gRooms
     global gUsers
@@ -435,34 +438,36 @@ def game_throw():
                 emit('log_room', {'data': 'Game does not exist.'},
                      to=room)
             else:
-                result = gameRooms[roomIdx]["game"].throw(username)
-                other_player = gameRooms[roomIdx]["game"].get_other_players_id(username)
-                player_dice = gameRooms[roomIdx]["game"].get_hand_by_username(username)
-                other_player_dice = gameRooms[roomIdx]["game"].get_hand_by_username(other_player)
+                result = gameRooms[roomIdx]["game"].throw(username) #wykonanie rzutu dla gracza pozyskanie wyniku rzutu (tekst)
+                other_player = gameRooms[roomIdx]["game"].get_other_players_id(username) # pozyskanie nazwy drugiego uczestnika gry
+                player_dice = gameRooms[roomIdx]["game"].get_hand_by_username(username) # pozyskanie wartości kości gracza
+                other_player_dice = gameRooms[roomIdx]["game"].get_hand_by_username(other_player) # pozyskanie kości przeciwnika
                 emit('log_room', {'data': 'Throw '+username+': '+result},
                      to=room)
                 try:
                     emit('users_dice', {'data1': player_dice, 'username1': username, 'data2': other_player_dice,
                                         'username2': other_player},
-                         room=sid)
+                         room=sid) # wysłanie wartości własnych kości do obu graczy w celu wyświetlenia
                     if gameRooms[roomIdx]["game"].get_step_player("throw",other_player):
                         emit('users_dice', {'data2': player_dice, 'username2': username, 'data1': other_player_dice,
                                             'username1': other_player},
-                             room=get_sid(other_player))
+                             room=get_sid(other_player))  # wysłanie wartości kości przeciwnika do obu graczy w celu wyświetlenia
                     else:
                         socketio.emit('current_step', {'data': "Waiting for the other player to throw"}, room=sid)
 
                 except Exception as e:
                     print(e)
 
-@socketio.on('game_rethrow')
+@socketio.on('game_rethrow') # Funkcja jest wywoływana po naciśnięciu przycisku Rethrow.
+# Wykonywany jest przerzucenie kości - metoda rethrow obiektu klasy Game.
 def game_rethrow(message):
     global gRooms
     global gUsers
     global gameRooms
     sid = request.sid
     username = get_username(sid)
-    rethrowIds = [message['d1'],message['d2'],message['d3'],message['d4'],message['d5']]
+    rethrowIds = [message['d1'],message['d2'],message['d3'],message['d4'],message['d5']] # lista zawierająca informację,
+    # czy kość oznaczono jako do przerzucenia
 
     if username == None:
         emit('my_response', {'data': "You have to log in."})
@@ -477,20 +482,20 @@ def game_rethrow(message):
                      to=room)
             else:
                 if gameRooms[roomIdx]["game"].get_current_step() == "rethrow":
-                    result = gameRooms[roomIdx]["game"].rethrow(username,rethrowIds)
+                    result = gameRooms[roomIdx]["game"].rethrow(username,rethrowIds) #wykonanie przerzucenia dla gracza i pozyskanie wyniku (tekst)
                     emit('log_room', {'data': 'Rethrow ' + username + ': ' + result},
                          to=room)
-                    other_player = gameRooms[roomIdx]["game"].get_other_players_id(username)
-                    player_dice = gameRooms[roomIdx]["game"].get_hand_by_username(username)
-                    other_player_dice = gameRooms[roomIdx]["game"].get_hand_by_username(other_player)
+                    other_player = gameRooms[roomIdx]["game"].get_other_players_id(username) # pozyskanie nazwy drugiego uczestnika gry
+                    player_dice = gameRooms[roomIdx]["game"].get_hand_by_username(username) # pozyskanie wartości kości gracza
+                    other_player_dice = gameRooms[roomIdx]["game"].get_hand_by_username(other_player) # pozyskanie kości przeciwnika
                     try:
                         emit('users_dice', {'data1': player_dice, 'username1': username, 'data2': other_player_dice,
                                             'username2': other_player},
-                             room=sid)
+                             room=sid)  # wysłanie wartości własnych kości do obu graczy w celu wyświetlenia
                         if gameRooms[roomIdx]["game"].get_step_player("rethrow", other_player):
                             emit('users_dice', {'data2': player_dice, 'username2': username, 'data1': other_player_dice,
                                                 'username1': other_player},
-                                 room=get_sid(other_player))
+                                 room=get_sid(other_player)) # wysłanie wartości kości przeciwnika do obu graczy w celu wyświetlenia
                         else:
                             socketio.emit('current_step', {'data': "Waiting for the other player to rethrow"}, room=sid)
 
@@ -499,56 +504,63 @@ def game_rethrow(message):
                 else:
                     emit('log_room', {'data': 'Cannot rethrow.'},
                          to=room)
-class Game(object):
-    def __init__(self, players, width=600, height=400):
-        self.x = 0
-        self.steps = {"throw":[False,False,True],"throw_send":[False,False,False],"rethrow":[False,False,False],"compare":[False,False,False],"finish":[False,False,False]}
-        self.players=players
-        self.hands = []
-        self.players_dice=[[0],[0]]
-        self.players_scores=[0,0]
-        print("init")
 
-    def get_current_step(self):
+
+### Kolejna sekcja zawiera deklarację klasy Game oraz funkcję wykorzystywaną w jej metodach
+class Game(object): # Klasa gry. Silnik gry.
+    def __init__(self, players): # Argumentem konstruktora jest lista nazw użytkowników obu graczy.
+        # Aktualny krok gry
+        self.steps = {"throw":[False,False,True],"throw_send":[False,False,False],"rethrow":[False,False,False],"compare":[False,False,False],"finish":[False,False,False]}
+        self.players = players
+        self.hands = [] # lista zawierająca strukturę identyfikującą rękę (układ kości) dla każdego z graczy
+        self.players_dice=[[0],[0]] # kości obu graczy
+        self.players_scores=[0,0] # wynik rozgrywki
+        print("game init")
+
+    def get_current_step(self): # metoda zwracająca aktualny krok gry
         return next((key for key, value in self.steps.items() if value[2] == True), None)
-    def get_step_player(self,step,player):
+
+    def get_step_player(self,step,player): # metoda zwracająca status określonego kroku dla gracza
         playerIdx = self.players.index(player)
         return self.steps[step][playerIdx]
-    def get_hand(self):
+
+    def get_hand(self): # metoda zwracająca listę z nazwami użytkoników graczy i listę z kości graczy
         return self.players, self.players_dice
-    def get_hand_by_username(self,player):
+
+    def get_hand_by_username(self,player): # metoda zwracająca kości podanego gracza
         playerIdx = self.players.index(player)
         return self.players_dice[playerIdx]
-    def get_other_players_id(self,player):
+
+    def get_other_players_id(self,player): # metoda zwracająca kości przeciwnika podanego gracza
         for i in self.players:
             if i != player:
                 return i
         return None
-    def throw(self, player):
+
+    def throw(self, player): # metoda realizująca rzut dla gracza
         playerIdx=self.players.index(player)
         if not self.steps["throw"][playerIdx] and self.steps["throw"]:
-            vals =[random.randrange(6)+1 for i in range(5)]
+            vals =[random.randrange(6)+1 for i in range(5)] # losowanie wartości kości
             vals.sort(reverse=True)
             self.players_dice[playerIdx] = vals
             self.steps["throw"][playerIdx] = True
 
-            if all(self.steps["throw"]):
+            if all(self.steps["throw"]): # Jeżeli obaj gracze wykonali rzut, następuje przejście do następnego kroku.
                 self.steps["throw_send"][2] = True
                 self.steps["throw"][2] = False
-            self.hands = [identify_hand(self.players_dice[0]), identify_hand(self.players_dice[1])]
+            self.hands = [identify_hand(self.players_dice[0]), identify_hand(self.players_dice[1])] # identyfikacja układów, jakie posiadają gracze
             return str(self.players_dice[playerIdx])
         elif not self.steps["throw"]:
             return "Cannot throw."
         elif self.steps["throw"][playerIdx]:
             return "Player have already thrown dice."
 
-    def throw_send(self):
+    def throw_send(self): # metoda przełączająca krok gra z rethrow_send na rethrow
         self.steps["rethrow"][2] = True
         self.steps["throw_send"][2] = False
         self.steps["rethrow"] = [False, False, True]
 
-
-    def rethrow(self,player,rethrowIds):
+    def rethrow(self,player,rethrowIds): # metoda realizująca przerzucenie kości dla gracza
         playerIdx=self.players.index(player)
         if not self.steps["rethrow"][playerIdx] and self.steps["rethrow"]:
             vals = self.players_dice[playerIdx].copy()
@@ -562,7 +574,7 @@ class Game(object):
                 self.steps["compare"][2] = True
                 self.steps["rethrow"][2] = False
 
-            self.hands = [identify_hand(self.players_dice[0]), identify_hand(self.players_dice[1])]
+            self.hands = [identify_hand(self.players_dice[0]), identify_hand(self.players_dice[1])] # identyfikacja układów, jakie posiadają gracze
             return str(self.players_dice[playerIdx])
         elif not self.steps["rethrow"]:
             return "Cannot rethrow."
