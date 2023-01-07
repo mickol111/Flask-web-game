@@ -30,15 +30,15 @@
         return img;
     }
         $(document).ready(function() {
-            var socket = io();
+            var socket = io(); // Stworzenie obiektu gniazda sieciowego (biblioteka socket.io)
 
-            socket.on('connect', function() {
+            socket.on('connect', function() { // Handler, który na wydarzenie 'connect' wykonuje funkcję.
                 socket.emit('my_event', {data: 'I\'m connected!'});
             });
 
             socket.on('my_response', function(msg, cb) {
                 $('#log').append($('<div/>').text('# ' + msg.data).html()+'<br>');
-                if (cb)
+                if (cb) // callback - wartość, która jest zwracana do serwera; w tym przypadku brak
                     cb();
             });
             socket.on('emit_room', function(msg, cb) {
@@ -61,7 +61,6 @@
                 if (cb)
                     cb();
             });
-
 
             socket.on('status', function(msg,cb) {
                 $('#connected_users').text(msg.count);
@@ -86,7 +85,6 @@
                           c2.innerHTML = str1[i].users;
                     }
                 }
-                //$('#rooms_text').text(msg.rooms);
                 if (cb)
                     cb();
             });
@@ -149,9 +147,6 @@
                 socket.emit('my_ping');
             }, 1000);
 
-            // Handler for the "pong" message. When the pong is received, the
-            // time from the ping is stored, and the average of the last 30
-            // samples is average and displayed.
             socket.on('my_pong', function() {
                 var latency = (new Date).getTime() - start_time;
                 ping_pong_times.push(latency);
@@ -162,9 +157,6 @@
                 $('#ping-pong').text(Math.round(10 * sum / ping_pong_times.length) / 10);
             });
 
-            // Handlers for the different forms in the page.
-            // These accept data from the user and send it to the server in a
-            // variety of ways
             $('form#username_form').submit(function(event) {
                 socket.emit('user_login', {username: $('#username').val()});
                 return false;
@@ -402,15 +394,6 @@ $( "#throw_game" ).on( "click", function(event) {
                 </table>
                 </form>
             </div>
-
-
-
-
-
-
-
-
-
             <div id="opponents_dice_box">
                 <h3>user2</h3>
                 <table id="yourdices">
@@ -436,106 +419,5 @@ $( "#throw_game" ).on( "click", function(event) {
         </div>
     </div>
     <div id="footer" style="text-decoration: blink underline;">㉿PS MK MB 2k23㉿</div>
-    <!--<h1>Flask-SocketIO Test</h1>
-    <p>
-      Async mode is: <b>{{ async_mode }}</b><br>
-      Current transport is: <b><span id="transport"></span></b><br>
-      Average ping/pong latency: <b><span id="ping-pong"></span>ms</b><br>
-      Number of connected users: <b><span id="connected_users"></span></b>
-    </p>
-    <h2>Username:</h2>
-    <form id="username_form" method="POST" action='#'>
-        <input type="text" name="username" id="username" placeholder="User Name">
-        <input type="submit" value="Login">
-    </form>
-    <form id="disconnect" method="POST" action="#">
-        <input type="submit" value="Disconnect">
-    </form>
-    <div id="rooms" float="right">
-        <h2>Rooms:</h2>
-        <form id="rooms_btn" method="POST" action="#">
-            <input type="submit" value="Refresh">
-        </form>
-        <div id="rooms_text"></div>
-        <form id="join" method="POST" action='#'>
-            <input type="text" name="join_room" id="join_room" placeholder="Room Name">
-            <input type="submit" value="Join Room">
-        </form>
-        <form id="create" method="POST" action='#'>
-            <input type="text" name="create_room" id="create_room" placeholder="Room Name">
-            <input type="password" name="create_room_password" id="create_room_password" placeholder="password">
-            <input type="checkbox" name="create_room_checkbox" id="create_room_checkbox">
-            <input type="submit" value="Create Room">
-        </form>
-    </div>
-    <div id="main">
-        <div id="lobby" style="width:50%; display:inline-block; float: left; background: green;">
-            <h2>Send:</h2>
-            <form id="emit" method="POST" action='#'>
-                <input type="text" name="emit_data" id="emit_data" placeholder="Message">
-                <input type="submit" value="Echo">
-            </form>
-            <form id="broadcast" method="POST" action='#'>
-                <input type="text" name="broadcast_data" id="broadcast_data" placeholder="Message">
-                <input type="submit" value="Broadcast">
-            </form>
-            <form id="send_room" method="POST" action='#'>
-                <input type="text" name="room_name" id="room_name" placeholder="Room Name">
-                <input type="text" name="room_data" id="room_data" placeholder="Message">
-                <input type="submit" value="Send to Room">
-            </form>
-            <h2>Receive:</h2>
-            <div id="log" style="overflow:scroll; height:400px;"></div>
-        </div>
-        <div id="room_box" style="width:50%; display:inline-block; float: right; background: pink;">
-            <h3 id="room_box_name">Room: None</h3>
-            <form id="leave" method="POST" action='#'>
-                <input type="submit" value="Leave Room">
-            </form>
-            <form id="close" method="POST" action="#">
-                <input type="submit" value="Close Room">
-            </form>
-            <div id="room_log" style="overflow:scroll; height:400px;"></div>
-            <form id="room_box_send" method="POST" action='#'>
-                <input type="text" name="room_data" id="room_box_data" placeholder="Message">
-                <input type="submit" value="Send">
-            </form>
-            <div id="score_game_box">
-                <p><span id="score_game"></span></p>
-            </div>
-            <div id="game_box">
-                <button id="create_game">create game</button>
-                <button id="throw_game">throw_game</button>
-            </div>
-            <div id="current_step_box">
-                <h3></h3>
-            </div>
-            <div id="users_dice_box">
-                <h3></h3>
-                <p></p>
-            </div>
-            <div id="opponents_dice_box">
-                <h3></h3>
-                <p></p>
-            </div>
-            <div id="game_dice_box">
-                <form id="game_dice" method="POST" action="#">
-                    <input type="checkbox" id ="d1" value = 1>
-                    <label id="d1l"></label>
-                    <input type="checkbox" id ="d2" value = 2>
-                    <label id="d2l"></label>
-                    <input type="checkbox" id ="d3" value = 3>
-                    <label id="d3l"></label>
-                    <input type="checkbox" id ="d4" value = 4>
-                    <label id="d4l"></label>
-                    <input type="checkbox" id ="d5" value = 5>
-                    <label id="d5l"></label><br>
-                    <input type="submit" value="Rethrow">
-                </form>
-            </div>
-        </div>
-        </div>
-    </div>
--->
 </body>
 </html>
