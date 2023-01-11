@@ -3,27 +3,26 @@ from flask import Flask, render_template, session, request, \
     copy_current_request_context
 from flask_socketio import SocketIO, emit, join_room, leave_room, \
     close_room, call, disconnect,send
-
 import random
 
-async_mode = None
 
-app = Flask(__name__)
+async_mode = None
+app = Flask(__name__)   # utworzenie obiektu Flask
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, async_mode=async_mode)
+socketio = SocketIO(app, async_mode=async_mode) # Utworzenie gniazda sieciowego i przypisanie go do utworzonego obiektu Flask
 thread = None
 thread_lock = Lock()
 
-gCount = 0
-gRooms = []
-gUsers = []
-gPasswords = []
+gCount = 0  # liczba połączonych klientów
+gRooms = [] # tablica zawierająca dane dotyczące pokojów: nazwa pokoju, nazwy uzytkowników w pokoju oraz czy dla pokoju jest ustawione hasło
+gUsers = [] # tablica zawierająca dane dotyczące użytkowników: ID sesji i nazwę użytkownika
+gPasswords = [] # tablica zawierająca hasła do pokojów
 
 #constants
 ROOM_CAP = 2
 
 ## game variables
-gameRooms =[]
+gameRooms =[]   # tablica zawierająca obiekty gry w poszczególnych pokojach i informacje o nich
 HANDS = {
     "high card": 0,
     "one pair": 1,
@@ -35,6 +34,7 @@ HANDS = {
     "five of a kind": 7
 }
 
+### Funkcje służące do uzyskania informacji o nazwie użytkownika na podstawie jego ID, itp.
 def get_sid(username):
     global gUsers
     return next((x[0] for i, x in enumerate(gUsers) if x[1] == username), None)
@@ -48,10 +48,11 @@ def get_roomIdx(room):
     return next((i for i, x in enumerate(gRooms) if x["room"] == room), None)
 
 
+### Wątek działający w tle, w którym w pętli wykonywane są operacje związane z grą.
 def background_thread():
     while True:
-        socketio.sleep(0.01)
-        for i, v in enumerate(gameRooms):
+        socketio.sleep(0.01) # Pętla jest wykonywana co 0.01 sekundy.
+        for i, v in enumerate(gameRooms): # Pętla iterująca to wszystkich utworzonych grach i sprawdzająca dla nich warunki.
             if v["game"].get_current_step() == "throw_send":
                 users, hands = v["game"].get_hand()
                 sid=[0,0]
@@ -60,7 +61,8 @@ def background_thread():
                 for j in range(2):
                     socketio.emit('game_dice', {'user': users[j],'d1':hands[j][0],'d2':hands[j][1],'d3':hands[j][2],'d4':hands[j][3], 'd5':hands[j][4]}, room = sid[j])
                     v["game"].throw_send()
-                socketio.emit('log_room', {'data': "To rethrow, check dice and accept."}, to=v["room"])
+                socketio.emit('log_room', {'data': "To rethrow, check dice and accept."}, to=v["room"]) # to=room - dane
+                # wysłane do użytkowników znajdujących się w pokoju o podanym ID sesji połączenia.
                 socketio.emit('current_step', {'data': "Rethrow"}, to=v["room"])
             elif v["game"].get_current_step() == "compare":
                 socketio.emit('log_room', {'data': v["game"].compare()}, to=v["room"])
@@ -75,34 +77,37 @@ def background_thread():
                 socketio.emit('current_step', {'data': "Game finished"}, to=v["room"])
 
 
-
-@app.route('/')
-def index():
+@app.route('/') # wywoływane po wpisaniu adresu serwera w przeglądarce
+def index(): # funkcja renderująca stronę HTML
     return render_template('index.html', async_mode=socketio.async_mode)
 
 
+### Funkcje obsługujące zdarzenia związane z gniazdem sieciowym.
+# Funkcje z dekoratorem @socketio.event wywoływane są po wyemitowaniu przez klienta danych z podaniem nazwy funkcji, np. 'echo'.
 @socketio.event
-def echo(message):
+def echo(message): # Funkcja zwraca wysłane przez klienta dane do tego klienta. Dane te są wydrukowane tylko u klienta, który je wysłał.
     emit('my_response', {'data': message['data']})
 
 
 @socketio.event
-def my_broadcast_event(message):
+def my_broadcast_event(message): # Funkcja realizująca broadcast do wszystkich połączonych aplikacji klienta, z podaniem nazwy użytkownika, który wysłał wiadomość.
     global gUsers
-    sid = request.sid
+    sid = request.sid # odczytanie ID sesji połączenia
     emit('emit_lobby',
          {'username': get_username(sid), 'data': message['data']},
-         broadcast=True)
+         broadcast=True) # broadcast=True - wiadomość emitowana do wszystkich klientów
 
 
 @socketio.event
-def rooms_refresh():
+def rooms_refresh(): # Funkcja odświeżająca tablicę z pokojami i znajdującymi się w nich użytkownikami.
     global gRooms
     print(str(gRooms))
     emit('rooms_status', {"rooms": str(gRooms)}, broadcast=True)
 
+
 @socketio.event
-def user_login(message):
+def user_login(message): # Funkcja wywoływana po wpisaniu nazwy użytkownika i naciśnięciu przycisku Login.
+    # Jeżeli wprowadzona nazwa uzytkownika nie jest zajęta, do tablicy z użytkownikami dodawany jest nowy wpis, zawierający ID sesjji i nazwę użytkownika.
     global gUsers
     username = message['username']
     sid = request.sid
@@ -121,8 +126,14 @@ def user_login(message):
         print("Username is taken: " + username)
         emit('my_response', {'data': 'Username: '+username+' is already taken.'})
 
-@socketio.on('create')
-def create(data):
+
+# @socketio.on('identyfikator') tworzy handler eventu po stronie serwera.
+@socketio.on('create') # Funkcja jest wywoływana w odpowiedzi na socket.emit('create', ... po stronie klienta.
+def create(data): # Funkcja wywoływana po wprowadzeniu przez użytkownika danych i naciśnięciu przycisku Create Room.
+    # Jeżeli użytkownik jest zalogowany i pokój o tej nazwie nie istnieje, do tablicy gRooms dodawany jest
+    # słownik zawierający nazwę pokoju, nabelę z nazwami użytkowników znajdujących się w danym pokoju oraz informację,
+    # czy dostęp do pokoju zabezpieczony jest hasłem.
+    # Do tablicy gPasswords dodawany jest słownik zawierający nazwę pokoju, hasło i informację, czy dostęp do pokoju zabezpieczony jest hasłem
     global gRooms
     global gUsers
     global gPasswords
@@ -139,7 +150,7 @@ def create(data):
         if roomIdx !=None:
             emit('my_response', {'data': room + ' already exists.'})
         else:
-            join_room(room)
+            join_room(room) # Utworzenie pokoju i dołączenie do niego . join_room to funkcja z biblioteki Flask-SocketIO
             print(room + ' has been created.')
             print(username + ' has entered the room: ' + room)
             emit('my_response', {'data': room + ' has been created. '+username + ' has entered the room: ' + room},
@@ -153,7 +164,8 @@ def create(data):
 
 
 @socketio.on('join')
-def on_join(data):
+def on_join(data): # Funkcja wywoływana po wprowadzeniu przez użytkownika nazwy pokoju i naciśnięciu przycisku Join Room.
+    # Dołączenie użytkownika do wybranego pokoju, jeżeli warunki zostały spełnione i wpisanie go do tablicy gRooms.
     global gRooms
     global gUsers
     global gPasswords
@@ -173,7 +185,7 @@ def on_join(data):
                 set_password = next((x["set_password"] for i, x in enumerate(gPasswords) if x["room"] == room), None)
 
                 if set_password:
-                    cb = call('request_password', {'room': room})
+                    cb = call('request_password', {'room': room}) # W ramach callbacku na żądanie 'request_password' serwera, klient wysyła hasło, wprowadzone w popupie.
                     if cb == password:
                         password_correct = True
                         print("password_correct")
@@ -183,11 +195,11 @@ def on_join(data):
                 print("password_correct "+str(password_correct))
                 if not set_password or password_correct:
                     print("if not set_password or password_correct")
-                    join_room(room)
+                    join_room(room) # Dołączenie do pokoju.
                     print(username + ' has entered the room: ' + room)
                     emit('my_response', {'data': username + ' has entered the room: ' + room + '.'},
                          broadcast=True)
-                    gRooms[roomIdx]["users"].append(username)
+                    gRooms[roomIdx]["users"].append(username) # Dopisanie użytkownika do tablicy z użytkownikami w odpowiednim słowniku tablicy gRooms
                     emit('rooms_status', {"rooms": str(gRooms)}, broadcast=True)
                     emit('log_room', {'data': 'User ' + username + ' has entered the room.'},
                          to=room)
@@ -200,7 +212,8 @@ def on_join(data):
 
 
 @socketio.event
-def leave():
+def leave(): # Funkcja wywoływana po wprowadzeniu przez użytkownika nazwy pokoju i naciśnięciu przycisku Leave Room.
+    # Powoduje wyjście użytkownika z pokoju i usunięcie go z wpisu dotyczącego danego pokoju w tablicy gRooms.
     global gRooms
     global gUsers
     sid = request.sid
@@ -209,7 +222,7 @@ def leave():
         emit('my_response', {'data': "You have to log in."})
     else:
         room = next((x["room"] for i, x in enumerate(gRooms) if username in x["users"]), None)
-        leave_room(room)
+        leave_room(room) # Wyjście z pokoju
         roomIdx = get_roomIdx(room)
 
         gameRoomIdx = next((i for i, x in enumerate(gameRooms) if x["room"] == room), None)
@@ -226,7 +239,8 @@ def leave():
 
 
 @socketio.on('close_room')
-def on_close_room():
+def on_close_room(): # Funkcja wywoływana po wprowadzeniu przez użytkownika nazwy pokoju i naciśnięciu przycisku Close Room.
+    # Powoduje zamknięcie pokoju i usunięcie dotyczącego go słownika z tablicy gRooms.
     global gRooms
     global gUsers
     global gameRooms
@@ -240,24 +254,25 @@ def on_close_room():
              to=room)
         emit('log_room', {'data': 'Room ' + room + ' is closing.'},
              to=room)
-        close_room(room)
+        close_room(room)    # zamknięcie pokoju
         roomIdx = get_roomIdx(room)
 
         gameRoomIdx = next((i for i, x in enumerate(gameRooms) if x["room"] == room), None)
         if gameRoomIdx != None:
-            del gameRooms[gameRoomIdx]["game"]
-            del gameRooms[gameRoomIdx]
+            del gameRooms[gameRoomIdx]["game"] # usunięcie obiektu gry w danym pokoju
+            del gameRooms[gameRoomIdx]  # usunięcie pozycji dostyczącej pokoju z tablicy gameRooms.
             socketio.emit('log_room', {'data': "Game closing."}, to = room)
 
-        del gRooms[roomIdx]
+        del gRooms[roomIdx] # usunięcie pozycji dotyczącej pokoju z gRooms
         emit('rooms_status', {"rooms": str(gRooms)}, broadcast=True)
         passwordIdx = next((i for i, x in enumerate(gPasswords) if x["room"] == room), None)
-        del gPasswords[passwordIdx]
+        del gPasswords[passwordIdx] # usunięcie pozycji dotyczącej pokoju z gPasswords
         print(gPasswords)
 
 
 @socketio.event
-def outside_room_event(message):
+def outside_room_event(message):    # Funkcja wywoływana po podaniu przez użytkownika nazwy pokoju, wprowadzeniu wiadomości i zatwierzeniu przyciskiem Send to Room.
+    # Powoduje wysłanie wiadomości do podanego pokoju. Wiadomość pojawia się w logu pokoju.
     global gUsers
     sid = request.sid
     username = get_username(sid)
@@ -269,7 +284,8 @@ def outside_room_event(message):
                 to=message['room'])
 
 @socketio.event
-def room_post(message):
+def room_post(message): # Funkcja wywoływana po wprowadzeniu wiadomości i zatwierdzeniu przyciskiem Send.
+    # Powoduje wysłanie wiadomości do pokoju, w którym użytkownik się znajduje
     global gUsers
     global gRooms
     sid = request.sid
@@ -284,15 +300,14 @@ def room_post(message):
 
 
 @socketio.event
-def disconnect_request():
+def disconnect_request():   # Funkcja wywoływana po naciśnięciu przycisku Disconnect.
+    # Powoduje zakończenie połączenie klienta z serwerem.
     @copy_current_request_context
     def can_disconnect():
         disconnect()
-    # for this emit we use a callback function
-    # when the callback function is invoked we know that the message has been
-    # received and it is safe to disconnect
     emit('my_response',
-         {'data': 'Disconnected!'}, callback=can_disconnect)
+         {'data': 'Disconnected!'}, callback=can_disconnect) # wykorzystano funkcję callback. Gdy jest ona wywołana,
+    # mamy pewność że wiadomość została dostarczona i można się bezpiecznie rozłączyć.
 
 
 @socketio.event
@@ -313,7 +328,8 @@ def connect():
     emit('status', {'count': gCount}, broadcast=True)
 
 
-@socketio.on('disconnect')
+@socketio.on('disconnect') # Identyfikator disconnect jest nazwą zarezerwowaną. Zdarzenie ma miejsce, gdy następuje
+# przerwanie połączenia klienta z serwerem (poprzez naciśnięcie przycisku disconnect lub zamknięcie karty przeglądarki).
 def test_disconnect():
     global gCount
     global gUsers
@@ -323,7 +339,7 @@ def test_disconnect():
     room = next((x["room"] for i, x in enumerate(gRooms) if username in x["users"]), None)
     if userIdx!=None:
         if room!= None:
-            leave_room(room)
+            leave_room(room) # wyjście z pokoju
             roomIdx = get_roomIdx(room)
 
             gameRoomIdx = next((i for i, x in enumerate(gameRooms) if x["room"] == room), None)
@@ -332,11 +348,11 @@ def test_disconnect():
                 del gameRooms[gameRoomIdx]
                 socketio.emit('log_room', {'data': "Game closing. User has disconnected"}, to=room)
 
-            gRooms[roomIdx]["users"].remove(username)
+            gRooms[roomIdx]["users"].remove(username) # usunięcie użytkownika z wpisu dotyczącego pokoju , w którym się znajdował z tablicy gRooms.
             emit('log_room', {'data': 'User ' + username+' has disconnected.'},
                  to=room)
             emit('rooms_status', {"rooms": str(gRooms)}, broadcast=True)
-        del gUsers[userIdx]
+        del gUsers[userIdx] # usunięcie użytkownika z tablicy gUsers
         print('User removed. Users list: '+str(gUsers))
     print('Client disconnected', request.sid)
     gCount -= 1
@@ -344,8 +360,9 @@ def test_disconnect():
     emit('status', {'count': gCount},broadcast=True)
 
 
-######
-@socketio.on('game_create')
+###### Poniższe funkcje dotyczą zdarzeń związanych z grą.
+@socketio.on('game_create') # Funkcja jest wywoływana po naciśnięciu przycisku Game Create.
+# Utworzenie instancji gry dla danego pokoju.
 def game_create():
     global gRooms
     global gUsers
@@ -370,13 +387,14 @@ def game_create():
                 emit('log_room', {'data': "You need two players two create a game."}, to=room)
                 print("You need two players two create a game.")
             else:
-                game = Game(players)
-                gameRooms.append({"room": room, "users": players, "game": game})
+                game = Game(players) # Utworzenie obiektu game podając nazwy obu użytkowników w danym pokoju
+                gameRooms.append({"room": room, "users": players, "game": game}) # Dodanie do tablicy gameRooms słownika
+                # zawierającego nazwę pokoju, tablicę z nazwami użytkowników w danym pokoju i instancję gry.
                 emit('log_room', {'data': 'Game created.'},
                      to=room)
-                socketio.emit('current_step', {'data': "Throw"}, to=room)
+                socketio.emit('current_step', {'data': "Throw"}, to=room) # przejście do kroku gry Throw
 
-@socketio.on('game_update')
+@socketio.on('game_update') # Funkcja niewykorzystywana w finalnej wersji
 def game_update():
     global gRooms
     global gUsers
@@ -398,7 +416,10 @@ def game_update():
                 gameRooms[roomIdx]["game"].update()
                 emit('log_room', {'data': 'Game updated.'},
                      to=room)
-@socketio.on('game_throw')
+
+
+@socketio.on('game_throw') # Funkcja jest wywoływana po naciśnięciu przycisku Throw.
+# Wykonywany jest rzut kośćmi - metoda throw obiektu klasy Game.
 def game_throw():
     global gRooms
     global gUsers
@@ -417,34 +438,36 @@ def game_throw():
                 emit('log_room', {'data': 'Game does not exist.'},
                      to=room)
             else:
-                result = gameRooms[roomIdx]["game"].throw(username)
-                other_player = gameRooms[roomIdx]["game"].get_other_players_id(username)
-                player_dice = gameRooms[roomIdx]["game"].get_hand_by_username(username)
-                other_player_dice = gameRooms[roomIdx]["game"].get_hand_by_username(other_player)
+                result = gameRooms[roomIdx]["game"].throw(username) #wykonanie rzutu dla gracza pozyskanie wyniku rzutu (tekst)
+                other_player = gameRooms[roomIdx]["game"].get_other_players_id(username) # pozyskanie nazwy drugiego uczestnika gry
+                player_dice = gameRooms[roomIdx]["game"].get_hand_by_username(username) # pozyskanie wartości kości gracza
+                other_player_dice = gameRooms[roomIdx]["game"].get_hand_by_username(other_player) # pozyskanie kości przeciwnika
                 emit('log_room', {'data': 'Throw '+username+': '+result},
                      to=room)
                 try:
                     emit('users_dice', {'data1': player_dice, 'username1': username, 'data2': other_player_dice,
                                         'username2': other_player},
-                         room=sid)
+                         room=sid) # wysłanie wartości własnych kości do obu graczy w celu wyświetlenia
                     if gameRooms[roomIdx]["game"].get_step_player("throw",other_player):
                         emit('users_dice', {'data2': player_dice, 'username2': username, 'data1': other_player_dice,
                                             'username1': other_player},
-                             room=get_sid(other_player))
+                             room=get_sid(other_player))  # wysłanie wartości kości przeciwnika do obu graczy w celu wyświetlenia
                     else:
                         socketio.emit('current_step', {'data': "Waiting for the other player to throw"}, room=sid)
 
                 except Exception as e:
                     print(e)
 
-@socketio.on('game_rethrow')
+@socketio.on('game_rethrow') # Funkcja jest wywoływana po naciśnięciu przycisku Rethrow.
+# Wykonywany jest przerzucenie kości - metoda rethrow obiektu klasy Game.
 def game_rethrow(message):
     global gRooms
     global gUsers
     global gameRooms
     sid = request.sid
     username = get_username(sid)
-    rethrowIds = [message['d1'],message['d2'],message['d3'],message['d4'],message['d5']]
+    rethrowIds = [message['d1'],message['d2'],message['d3'],message['d4'],message['d5']] # lista zawierająca informację,
+    # czy kość oznaczono jako do przerzucenia
 
     if username == None:
         emit('my_response', {'data': "You have to log in."})
@@ -459,20 +482,20 @@ def game_rethrow(message):
                      to=room)
             else:
                 if gameRooms[roomIdx]["game"].get_current_step() == "rethrow":
-                    result = gameRooms[roomIdx]["game"].rethrow(username,rethrowIds)
+                    result = gameRooms[roomIdx]["game"].rethrow(username,rethrowIds) #wykonanie przerzucenia dla gracza i pozyskanie wyniku (tekst)
                     emit('log_room', {'data': 'Rethrow ' + username + ': ' + result},
                          to=room)
-                    other_player = gameRooms[roomIdx]["game"].get_other_players_id(username)
-                    player_dice = gameRooms[roomIdx]["game"].get_hand_by_username(username)
-                    other_player_dice = gameRooms[roomIdx]["game"].get_hand_by_username(other_player)
+                    other_player = gameRooms[roomIdx]["game"].get_other_players_id(username) # pozyskanie nazwy drugiego uczestnika gry
+                    player_dice = gameRooms[roomIdx]["game"].get_hand_by_username(username) # pozyskanie wartości kości gracza
+                    other_player_dice = gameRooms[roomIdx]["game"].get_hand_by_username(other_player) # pozyskanie kości przeciwnika
                     try:
                         emit('users_dice', {'data1': player_dice, 'username1': username, 'data2': other_player_dice,
                                             'username2': other_player},
-                             room=sid)
+                             room=sid)  # wysłanie wartości własnych kości do obu graczy w celu wyświetlenia
                         if gameRooms[roomIdx]["game"].get_step_player("rethrow", other_player):
                             emit('users_dice', {'data2': player_dice, 'username2': username, 'data1': other_player_dice,
                                                 'username1': other_player},
-                                 room=get_sid(other_player))
+                                 room=get_sid(other_player)) # wysłanie wartości kości przeciwnika do obu graczy w celu wyświetlenia
                         else:
                             socketio.emit('current_step', {'data': "Waiting for the other player to rethrow"}, room=sid)
 
@@ -481,114 +504,128 @@ def game_rethrow(message):
                 else:
                     emit('log_room', {'data': 'Cannot rethrow.'},
                          to=room)
-class Game(object):
-    def __init__(self, players, width=600, height=400):
-        self.x = 0
-        self.steps = {"throw":[False,False,True],"throw_send":[False,False,False],"rethrow":[False,False,False],"compare":[False,False,False],"finish":[False,False,False]}
-        self.players=players
-        self.hands = []
-        self.players_dice=[[0],[0]]
-        self.players_scores=[0,0]
-        print("init")
 
-    def get_current_step(self):
+
+### Kolejna sekcja zawiera deklarację klasy Game oraz funkcję wykorzystywaną w jej metodach
+class Game(object): # Klasa gry. Silnik gry.
+    def __init__(self, players): # Argumentem konstruktora jest lista nazw użytkowników obu graczy.
+        # Aktualny krok gry
+        self.steps = {"throw":[False,False,True],"throw_send":[False,False,False],"rethrow":[False,False,False],"compare":[False,False,False],"finish":[False,False,False]}
+        self.players = players
+        self.hands = [] # lista zawierająca strukturę identyfikującą rękę (układ kości) dla każdego z graczy
+        self.players_dice=[[0],[0]] # kości obu graczy
+        self.players_scores=[0,0] # wynik rozgrywki
+        print("game init")
+
+    def get_current_step(self): # metoda zwracająca aktualny krok gry
         return next((key for key, value in self.steps.items() if value[2] == True), None)
-    def get_step_player(self,step,player):
+
+    def get_step_player(self,step,player): # metoda zwracająca status określonego kroku dla gracza
         playerIdx = self.players.index(player)
         return self.steps[step][playerIdx]
-    def get_hand(self):
+
+    def get_hand(self): # metoda zwracająca listę z nazwami użytkoników graczy i listę z kości graczy
         return self.players, self.players_dice
-    def get_hand_by_username(self,player):
+
+    def get_hand_by_username(self,player): # metoda zwracająca kości podanego gracza
         playerIdx = self.players.index(player)
         return self.players_dice[playerIdx]
-    def get_other_players_id(self,player):
+
+    def get_other_players_id(self,player): # metoda zwracająca kości przeciwnika podanego gracza
         for i in self.players:
             if i != player:
                 return i
         return None
-    def throw(self, player):
+
+    def throw(self, player): # metoda realizująca rzut dla gracza
         playerIdx=self.players.index(player)
         if not self.steps["throw"][playerIdx] and self.steps["throw"]:
-            vals =[random.randrange(6)+1 for i in range(5)]
+            vals =[random.randrange(6)+1 for i in range(5)] # losowanie wartości kości
             vals.sort(reverse=True)
             self.players_dice[playerIdx] = vals
             self.steps["throw"][playerIdx] = True
 
-            if all(self.steps["throw"]):
+            if all(self.steps["throw"]): # Jeżeli obaj gracze wykonali rzut, następuje przejście do następnego kroku.
                 self.steps["throw_send"][2] = True
                 self.steps["throw"][2] = False
-            self.hands = [identify_hand(self.players_dice[0]), identify_hand(self.players_dice[1])]
+            self.hands = [identify_hand(self.players_dice[0]), identify_hand(self.players_dice[1])] # identyfikacja układów, jakie posiadają gracze
             return str(self.players_dice[playerIdx])
         elif not self.steps["throw"]:
             return "Cannot throw."
         elif self.steps["throw"][playerIdx]:
             return "Player have already thrown dice."
 
-    def throw_send(self):
+    def throw_send(self): # metoda przełączająca krok gra z rethrow_send na rethrow
         self.steps["rethrow"][2] = True
         self.steps["throw_send"][2] = False
         self.steps["rethrow"] = [False, False, True]
 
-
-    def rethrow(self,player,rethrowIds):
-        playerIdx=self.players.index(player)
+    def rethrow(self, player, rethrowIds): # metoda realizująca przerzucenie kości dla gracza; argumentem jest informacja, które kości są do przerzucenia
+        playerIdx = self.players.index(player)
         if not self.steps["rethrow"][playerIdx] and self.steps["rethrow"]:
             vals = self.players_dice[playerIdx].copy()
-            for i,v in enumerate(rethrowIds):
+            for i, v in enumerate(rethrowIds): # losowanie nowych wartości dla kości oznaczonych do przerzucenia
                 if v == 1:
                     vals[i] = random.randrange(6)+1
             vals.sort(reverse=True)
             self.players_dice[playerIdx] = vals
             self.steps["rethrow"][playerIdx] = True
-            if all(self.steps["rethrow"]):
+            if all(self.steps["rethrow"]): # Jeżeli obaj gracze wykonali przerzucenie, następuje przejście do następnego kroku.
                 self.steps["compare"][2] = True
                 self.steps["rethrow"][2] = False
 
-            self.hands = [identify_hand(self.players_dice[0]), identify_hand(self.players_dice[1])]
+            self.hands = [identify_hand(self.players_dice[0]), identify_hand(self.players_dice[1])] # identyfikacja układów, jakie posiadają gracze
             return str(self.players_dice[playerIdx])
         elif not self.steps["rethrow"]:
             return "Cannot rethrow."
         elif self.steps["rethrow"][playerIdx]:
             return "Player have already rethrown dice."
 
-    def compare(self):
+    def compare(self): # metoda realizująca porównanie układów, które posiadają gracze i określająca, kto wygrywa rundę
         coms = [str(self.players[0]+" scores."), str(self.players[1]+" scores."), "Draw."]
         com=-1
 
-        com = compare_hands(self.hands, self.players_scores, com)
+        com = compare_hands(self.hands, self.players_scores, com) # porównanie układów
 
         self.steps["compare"][2] = False
-        if self.players_scores[0]>=3 or self.players_scores[1]>=3:
+        if self.players_scores[0]>=3 or self.players_scores[1]>=3: # Jeżeli któryś z graczy zdobył trzy lub więcej punktów,
+            # przejście do kroku finish.
             self.steps["finish"][2] = True
-        else:
+        else: # W przeciwnym przypadku przejście do kroku throw
             self.steps["throw"] = [False, False, False]
             self.steps["throw"] = [False,False,True]
         return coms[com]
-    def finish(self):
+
+    def finish(self): # Zakończenie gry i wystawienie komunikatu, który gracz wygrał.
         print("finish game")
-        if self.players_scores[0]>self.players_scores[1]:
+        if self.players_scores[0] > self.players_scores[1]:
             return str("Player " + self.players[0]+ " has won.")
         else:
             return str("Player " + self.players[1] + " has won.")
 
 
-def find_max_len(lst):
-    #maxList = max(lst, key=lambda i: len(i))
+# Funkcje wykorzystywane w klasie Game
+def find_max_len(lst): # Wyszukuje warość, która najczęściej pojawiła się na kościach.
+    # Zwraca liczbę wystąpień najczęstszej wartości, ostatnią pozycję kości o najczęstszej wartości i najczęscszą wartość.
     if len(lst) != 0:
         maxIdx = max((len(l), i, l[0]) for i, l in enumerate(lst))
-        #maxLength = len(maxList)
         return maxIdx[0], maxIdx[1], maxIdx[2]
     else:
         return -1, -1, -1
 
-def all_max_len(lst):
-    lstTemp=lst.copy()
+
+def all_max_len(lst): # wyszukuje wszystkie najczęstsze wartości kości
+    # (1 i 2 kości o tej samej wartości mogą wystąpić więcej niż raz)
+    lstTemp = lst.copy() # Konieczne jest wykonanie kopii analizowanej listy z wartościami kości,
+    # ponieważ wykonywane jest usuwanie jej elementów.
     maxLen = 0
-    maxLenTemp=0
+    maxLenTemp = 0
     maxLenIdx = []
     idx = 0
-    i=0
-    while True:
+    i = 0
+    while True: # Najczęściej występujące wartości są identyfikowane, zapisywana jest ostatnia pozycja i liczba wystąpień,
+        # a następnie wartości te są usuwane z listy i operacja jest powtarzana, aż liczba wystąpień najczęstszej wartości
+        # będzie mniejsza od tej zapisanej wcześniej.
         maxLenTemp,idx, val = find_max_len(lstTemp)
         if maxLenTemp < maxLen:
             break
@@ -600,13 +637,14 @@ def all_max_len(lst):
     return [maxLenIdx, maxLen]
 
 
-def identify_hand(dice):
-    hand = 0
+def identify_hand(dice): # identyfikacja układu kości
+    # Funkcja zwraca wartość odpowiadającą układowi kości, wartości tego układu oraz największą wartość poza układem.
+    hand = 0 # wartości zmiennej korespondują z układami zapisanymi w słowniku HANDS
     hand_values = []
     max_other_value = 0
 
-    values = set(dice)
-    newlist = [[y for y in dice if y == x] for x in values]
+    values = set(dice) # unikatowe wartości kości
+    newlist = [[y for y in dice if y == x] for x in values] # zapisanie jednakowych wartości w jednej liście
     newlist_mov = newlist.copy()
     if all_max_len(newlist)[1] == 5:
         hand = 7
@@ -655,24 +693,24 @@ def identify_hand(dice):
 
     return {"hand": hand, "hand_values": hand_values, "max_other_value": max_other_value}
 
-def compare_hands(hands, players_scores, com):
+def compare_hands(hands, players_scores, com): # porównanie układów obu graczy
     if hands[0]["hand"] > hands[1]["hand"]:
         com = 0
     elif hands[0]["hand"] < hands[1]["hand"]:
         com = 1
-    else:
+    else: # Jeżeli układy są takie same, porównywane są wartości układów.
         if hands[0]["hand_values"][0] > hands[1]["hand_values"][0]:
             com = 0
         elif hands[0]["hand_values"][0] < hands[1]["hand_values"][0]:
             com = 1
-        else:
+        else: # Jeżeli ukłądy i ich wartości są takie same, porównywane są największe wartości poza układem.
             if hands[0]["max_other_value"] > hands[1]["max_other_value"]:
                 com = 0
             elif hands[0]["max_other_value"] < hands[1]["max_other_value"]:
                 com = 1
             else:
                 com = 2
-    if com == 0:
+    if com == 0: # Zwiększenie licznika gracza, który wygrał rundę.
         players_scores[0] += 1
     elif com == 1:
         players_scores[1] += 1
